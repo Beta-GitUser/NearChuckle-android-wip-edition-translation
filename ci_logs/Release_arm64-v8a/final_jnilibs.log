@@ -1,10 +1,16 @@
---- /home/runner/work/NearChuckle-android-wip-edition/NearChuckle-android-wip-edition/android/app/src/main/jniLibs/arm64-v8a/*.so ---
-ls: cannot access '/home/runner/work/NearChuckle-android-wip-edition/NearChuckle-android-wip-edition/android/app/src/main/jniLibs/arm64-v8a/*.so': No such file or directory
-/home/runner/work/NearChuckle-android-wip-edition/NearChuckle-android-wip-edition/android/app/src/main/jniLibs/arm64-v8a/*.so: cannot open `/home/runner/work/NearChuckle-android-wip-edition/NearChuckle-android-wip-edition/android/app/src/main/jniLibs/arm64-v8a/*.so' (No such file or directory)
-readelf: Error: '/home/runner/work/NearChuckle-android-wip-edition/NearChuckle-android-wip-edition/android/app/src/main/jniLibs/arm64-v8a/*.so': No such file
-size 0 bytes
---- /home/runner/work/NearChuckle-android-wip-edition/NearChuckle-android-wip-edition/android/app/src/main/jniLibs/armeabi-v7a/*.so ---
-ls: cannot access '/home/runner/work/NearChuckle-android-wip-edition/NearChuckle-android-wip-edition/android/app/src/main/jniLibs/armeabi-v7a/*.so': No such file or directory
-/home/runner/work/NearChuckle-android-wip-edition/NearChuckle-android-wip-edition/android/app/src/main/jniLibs/armeabi-v7a/*.so: cannot open `/home/runner/work/NearChuckle-android-wip-edition/NearChuckle-android-wip-edition/android/app/src/main/jniLibs/armeabi-v7a/*.so' (No such file or directory)
-readelf: Error: '/home/runner/work/NearChuckle-android-wip-edition/NearChuckle-android-wip-edition/android/app/src/main/jniLibs/armeabi-v7a/*.so': No such file
-size 0 bytes
+--- /home/runner/work/NearChuckle-android-wip-edition/NearChuckle-android-wip-edition/android/app/src/main/jniLibs/arm64-v8a/libEGL_angle.so (315504 bytes) ---
+  Class:                             ELF64
+  Type:                              DYN (Shared object file)
+  Machine:                           AArch64
+--- /home/runner/work/NearChuckle-android-wip-edition/NearChuckle-android-wip-edition/android/app/src/main/jniLibs/arm64-v8a/libGLESv2_angle.so (6757424 bytes) ---
+  Class:                             ELF64
+  Type:                              DYN (Shared object file)
+  Machine:                           AArch64
+--- /home/runner/work/NearChuckle-android-wip-edition/NearChuckle-android-wip-edition/android/app/src/main/jniLibs/armeabi-v7a/libEGL_angle.so (148652 bytes) ---
+  Class:                             ELF32
+  Type:                              DYN (Shared object file)
+  Machine:                           ARM
+--- /home/runner/work/NearChuckle-android-wip-edition/NearChuckle-android-wip-edition/android/app/src/main/jniLibs/armeabi-v7a/libGLESv2_angle.so (4272800 bytes) ---
+  Class:                             ELF32
+  Type:                              DYN (Shared object file)
+  Machine:                           ARM
