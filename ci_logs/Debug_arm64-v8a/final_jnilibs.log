@@ -1,0 +1,10 @@
+--- /home/runner/work/NearChuckle-android-wip-edition/NearChuckle-android-wip-edition/android/app/src/main/jniLibs/arm64-v8a/*.so ---
+ls: cannot access '/home/runner/work/NearChuckle-android-wip-edition/NearChuckle-android-wip-edition/android/app/src/main/jniLibs/arm64-v8a/*.so': No such file or directory
+/home/runner/work/NearChuckle-android-wip-edition/NearChuckle-android-wip-edition/android/app/src/main/jniLibs/arm64-v8a/*.so: cannot open `/home/runner/work/NearChuckle-android-wip-edition/NearChuckle-android-wip-edition/android/app/src/main/jniLibs/arm64-v8a/*.so' (No such file or directory)
+readelf: Error: '/home/runner/work/NearChuckle-android-wip-edition/NearChuckle-android-wip-edition/android/app/src/main/jniLibs/arm64-v8a/*.so': No such file
+size 0 bytes
+--- /home/runner/work/NearChuckle-android-wip-edition/NearChuckle-android-wip-edition/android/app/src/main/jniLibs/armeabi-v7a/*.so ---
+ls: cannot access '/home/runner/work/NearChuckle-android-wip-edition/NearChuckle-android-wip-edition/android/app/src/main/jniLibs/armeabi-v7a/*.so': No such file or directory
+/home/runner/work/NearChuckle-android-wip-edition/NearChuckle-android-wip-edition/android/app/src/main/jniLibs/armeabi-v7a/*.so: cannot open `/home/runner/work/NearChuckle-android-wip-edition/NearChuckle-android-wip-edition/android/app/src/main/jniLibs/armeabi-v7a/*.so' (No such file or directory)
+readelf: Error: '/home/runner/work/NearChuckle-android-wip-edition/NearChuckle-android-wip-edition/android/app/src/main/jniLibs/armeabi-v7a/*.so': No such file
+size 0 bytes
