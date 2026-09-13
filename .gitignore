@@ -1,0 +1,15 @@
+.vs
+*.user
+bin
+build
+Debug
+Debug_XBox
+Release
+build
+cmake-build-*
+android/.gradle/
+android/app/build/
+android/build/
+/build/
+*.apk
+local.properties
