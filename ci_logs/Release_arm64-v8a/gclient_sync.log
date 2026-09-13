@@ -8,14 +8,14 @@ Installing Debian bullseye amd64 root image: /home/runner/angle/angle/build/linu
 Downloading https://commondatastorage.googleapis.com/chrome-linux-sysroot/52d61d4446ffebfaa3dda2cd02da4ab4876ff237853f46d273e7f9b666652e1d
 ________ running 'python3 tools/rust/update_rust.py' in '/home/runner/angle/angle'
 Downloading https://commondatastorage.googleapis.com/chromium-browser-clang/Linux_x64/rust-toolchain-1edd55dcfcd573872c727fa3e086369a71661ee0-1-llvmorg-24-init-7747-g62397f8b.tar.xz .......... Done.
-Hook 'python3 tools/rust/update_rust.py' took 78.47 secs
+Hook 'python3 tools/rust/update_rust.py' took 78.15 secs
 ________ running 'python3 build/util/lastchange.py -o build/util/LASTCHANGE' in '/home/runner/angle/angle'
 ________ running 'python3 third_party/depot_tools/download_from_google_storage.py --no_resume --platform=linux* --bucket angle-glslang-validator -s tools/glslang/glslang_validator.sha1' in '/home/runner/angle/angle'
 0> Downloading tools/glslang/glslang_validator@de8679c3e2f15291ba4f5c32eebc954ce78bf39c...
-Downloading 1 files took 7.952414 second(s)
+Downloading 1 files took 8.097075 second(s)
 ________ running 'python3 third_party/depot_tools/download_from_google_storage.py --no_resume --platform=linux* --bucket angle-flex-bison -d tools/flex-bison/linux/' in '/home/runner/angle/angle'
 0> Downloading tools/flex-bison/linux/bison@36625019a2442ac8efc92c32e1d61bd3f450b7ab...
 0> Downloading tools/flex-bison/linux/flex@3c9694c62a4ad0d1f95b45bb748855c3688c923e...
-Downloading 2 files took 9.737871 second(s)
-Hook 'python3 third_party/depot_tools/download_from_google_storage.py --no_resume '--platform=linux*' --bucket angle-flex-bison -d tools/flex-bison/linux/' took 12.29 secs
+Downloading 2 files took 9.624690 second(s)
+Hook 'python3 third_party/depot_tools/download_from_google_storage.py --no_resume '--platform=linux*' --bucket angle-flex-bison -d tools/flex-bison/linux/' took 12.13 secs
 ________ running 'python3 build/config/siso/configure_siso.py --rbe_instance projects/rbe-chrome-untrusted/instances/default_instance' in '/home/runner/angle/angle'
