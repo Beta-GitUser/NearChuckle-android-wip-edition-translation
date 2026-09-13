@@ -1,0 +1,5 @@
+=== file checks ===
+/home/runner/angle/angle/out/Android_arm64/libEGL.so: cannot open `/home/runner/angle/angle/out/Android_arm64/libEGL.so' (No such file or directory)
+/home/runner/angle/angle/out/Android_arm/libEGL.so: cannot open `/home/runner/angle/angle/out/Android_arm/libEGL.so' (No such file or directory)
+ls: cannot access '/home/runner/angle/angle/out/Android_arm64/*.so': No such file or directory
+ls: cannot access '/home/runner/angle/angle/out/Android_arm/*.so': No such file or directory
