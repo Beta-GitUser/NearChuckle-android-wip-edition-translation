@@ -1,7 +1,21 @@
-=== file checks ===
-/home/runner/angle/angle/out/Android_arm64/libEGL.so: cannot open `/home/runner/angle/angle/out/Android_arm64/libEGL.so' (No such file or directory)
-/home/runner/angle/angle/out/Android_arm/libEGL.so: cannot open `/home/runner/angle/angle/out/Android_arm/libEGL.so' (No such file or directory)
--rwxr-xr-x 1 runner runner 309K Sep 13 13:27 /home/runner/angle/angle/out/Android_arm64/libEGL_angle.so
--rwxr-xr-x 1 runner runner 6.5M Sep 13 13:27 /home/runner/angle/angle/out/Android_arm64/libGLESv2_angle.so
--rwxr-xr-x 1 runner runner 146K Sep 13 13:37 /home/runner/angle/angle/out/Android_arm/libEGL_angle.so
--rwxr-xr-x 1 runner runner 4.1M Sep 13 13:37 /home/runner/angle/angle/out/Android_arm/libGLESv2_angle.so
+=== file checks (out dirs: libEGL_angle.so / libGLESv2_angle.so) ===
+--- /home/runner/angle/angle/out/Android_arm64/libEGL_angle.so ---
+-rwxr-xr-x 1 runner runner 309K Sep 13 14:05 /home/runner/angle/angle/out/Android_arm64/libEGL_angle.so
+/home/runner/angle/angle/out/Android_arm64/libEGL_angle.so: ELF 64-bit LSB shared object, ARM aarch64, version 1 (SYSV), dynamically linked, BuildID[sha1]=546d540127c32d14486475b0781bad3638d57943, stripped
+  Class:                             ELF64
+  Machine:                           AArch64
+--- /home/runner/angle/angle/out/Android_arm64/libGLESv2_angle.so ---
+-rwxr-xr-x 1 runner runner 6.5M Sep 13 14:05 /home/runner/angle/angle/out/Android_arm64/libGLESv2_angle.so
+/home/runner/angle/angle/out/Android_arm64/libGLESv2_angle.so: ELF 64-bit LSB shared object, ARM aarch64, version 1 (SYSV), dynamically linked, BuildID[sha1]=9f7acde6a9f06051fbd42a3d82498c121ad3f458, stripped
+  Class:                             ELF64
+  Machine:                           AArch64
+--- /home/runner/angle/angle/out/Android_arm/libEGL_angle.so ---
+-rwxr-xr-x 1 runner runner 146K Sep 13 14:13 /home/runner/angle/angle/out/Android_arm/libEGL_angle.so
+/home/runner/angle/angle/out/Android_arm/libEGL_angle.so: ELF 32-bit LSB shared object, ARM, EABI5 version 1 (SYSV), dynamically linked, BuildID[sha1]=a363f7ce2b8630d11908a942e09ad519a081cbb1, stripped
+  Class:                             ELF32
+  Machine:                           ARM
+--- /home/runner/angle/angle/out/Android_arm/libGLESv2_angle.so ---
+-rwxr-xr-x 1 runner runner 4.1M Sep 13 14:13 /home/runner/angle/angle/out/Android_arm/libGLESv2_angle.so
+/home/runner/angle/angle/out/Android_arm/libGLESv2_angle.so: ELF 32-bit LSB shared object, ARM, EABI5 version 1 (SYSV), dynamically linked, BuildID[sha1]=15867617f7674e15d0791a882fc67054f9bb9d3f, stripped
+  Class:                             ELF32
+  Machine:                           ARM
