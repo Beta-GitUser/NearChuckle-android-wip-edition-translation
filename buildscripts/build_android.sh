@@ -124,6 +124,7 @@ if [ ! -f "$DEPS_PREFIX/lib/libSDL3.so" ]; then
         -DCMAKE_INSTALL_PREFIX="$DEPS_PREFIX" \
         -DSDL_SHARED=ON \
         -DSDL_STATIC=OFF \
+        -DSDL_TESTS=OFF \
         -DSDL_TEST_LIBRARY=OFF
     cmake --build "$DEPS_ROOT/build-sdl3-$ABI" --target install -- -j"$NPROC"
 fi
@@ -158,19 +159,17 @@ if [ ! -f "$DEPS_PREFIX/lib/libvorbis.so" ]; then
         -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_INSTALL_PREFIX="$DEPS_PREFIX" \
         -DBUILD_SHARED_LIBS=ON \
-        -DOGG_ROOT="$DEPS_PREFIX"
+        -DOGG_LIBRARY="$DEPS_PREFIX/lib/libogg.so" \
+        -DOGG_INCLUDE_DIR="$DEPS_PREFIX/include" \
+        -DBUILD_TESTING=OFF
     cmake --build "$DEPS_ROOT/build-vorbis-$ABI" --target install -- -j"$NPROC"
 fi
 
-# 4. Build openal-soft
+# 4. Build openal-soft (pinned to 1.23.1 for Android NDK C++17 compatibility)
 if [ ! -f "$DEPS_PREFIX/lib/libopenal.so" ]; then
     echo "--> Building openal-soft for $ABI..."
     if [ ! -d "$SRC_CACHE/openal-soft" ]; then
-        if [ -d "/tmp/openal-soft" ]; then
-            cp -r /tmp/openal-soft "$SRC_CACHE/openal-soft"
-        else
-            git clone --depth 1 https://github.com/kcat/openal-soft "$SRC_CACHE/openal-soft"
-        fi
+        git clone --branch 1.23.1 --depth 1 https://github.com/kcat/openal-soft "$SRC_CACHE/openal-soft"
     fi
     cmake -B "$DEPS_ROOT/build-openal-$ABI" -S "$SRC_CACHE/openal-soft" \
         -DCMAKE_TOOLCHAIN_FILE="$TOOLCHAIN_FILE" \
@@ -197,9 +196,8 @@ cmake -B "$BUILD_DIR" -S "$ROOT_DIR" \
     -DANDROID_STL=c++_shared \
     -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
     -DCMAKE_PREFIX_PATH="$DEPS_PREFIX" \
-    -DCMAKE_FIND_ROOT_PATH="$DEPS_PREFIX;$NDK_PATH/toolchains/llvm/prebuilt/linux-x86_64/sysroot" \
-    -DCMAKE_INCLUDE_PATH="$DEPS_PREFIX/include" \
-    -DCMAKE_LIBRARY_PATH="$DEPS_PREFIX/lib" \
+    -DCMAKE_SHARED_LINKER_FLAGS="-L$DEPS_PREFIX/lib" \
+    -DCMAKE_EXE_LINKER_FLAGS="-L$DEPS_PREFIX/lib" \
     -DDISABLE_CG=ON \
     -DDISABLE_FFMPEG=ON \
     -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
