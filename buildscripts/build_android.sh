@@ -185,6 +185,15 @@ if [ ! -f "$DEPS_PREFIX/lib/libopenal.so" ]; then
     cmake --build "$DEPS_ROOT/build-openal-$ABI" --target install -- -j"$NPROC"
 fi
 
+# Ensure stub libGL.so exists in deps for link-time resolution
+mkdir -p "$DEPS_PREFIX/lib"
+if [ ! -f "$DEPS_PREFIX/lib/libGL.so" ]; then
+    CLANG_BIN=$(find "$NDK_PATH" -name "aarch64-linux-android*-clang" | head -n 1)
+    if [ -n "$CLANG_BIN" ]; then
+        "$CLANG_BIN" -shared -o "$DEPS_PREFIX/lib/libGL.so" -xc /dev/null -Wl,-soname,libGL.so 2>/dev/null || true
+    fi
+fi
+
 # 5. Build NearChuckle Engine
 echo "=== STEP: CMAKE CONFIGURE ENGINE ==="
 BUILD_DIR="$ROOT_DIR/build_android/$ABI"

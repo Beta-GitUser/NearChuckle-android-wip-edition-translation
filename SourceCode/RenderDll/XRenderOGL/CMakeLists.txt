@@ -181,7 +181,6 @@ if (MSVC)
     )
 elseif (ANDROID)
     set(SYSTEM_DEPS
-        GL
         log
         dl
         m
