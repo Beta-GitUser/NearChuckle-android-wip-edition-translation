@@ -280,7 +280,9 @@ void CheckFarCryCD( HINSTANCE hInstance ) {};
 #endif // FARCRY_CD_CHECK_RUSSIAN
 
 ///////////////////////////////////////////////
-#ifndef __linux
+#ifdef __ANDROID__
+extern "C" SDLMAIN_DECLSPEC int SDL_main(int argc, char* argv[])
+#elif !defined(__linux) && !defined(__linux__)
 int APIENTRY WinMain(HINSTANCE hInstance,
                      HINSTANCE hPrevInstance,
                      LPSTR     lpCmdLine,
@@ -713,7 +715,11 @@ bool RunGame(int argc, char** argv)
 	int i;
 #endif
 	SDL_Init(SDL_INIT_VIDEO);
+#ifdef __ANDROID__
+	setlocale(LC_ALL, "C");
+#else
 	setlocale(LC_ALL, "en_US.utf8");
+#endif
 
 //	InvokeExternalConfigTool();
 

@@ -89,6 +89,28 @@
 		{
 			h = ::dlopen(libName, cLoadLazy?(RTLD_LAZY | RTLD_GLOBAL):(RTLD_NOW | RTLD_GLOBAL));
 		}
+		if (!h && libName)
+		{
+			// Fallback: try converting Foo.dll to libFoo.so
+			string altName = libName;
+			size_t lastSlash = altName.find_last_of('/');
+			string file = (lastSlash != string::npos) ? altName.substr(lastSlash + 1) : altName;
+
+			if (file.length() > 4 && file.substr(file.length() - 4) == ".dll")
+				file = file.substr(0, file.length() - 4) + ".so";
+			if (file.rfind("lib", 0) != 0 && file.find(".so") != string::npos)
+				file = "lib" + file;
+
+			if (pModPath && strlen(pModPath) > 0)
+			{
+				string modCandidate = string(pModPath) + "/" + file;
+				h = ::dlopen(modCandidate.c_str(), cLoadLazy?(RTLD_LAZY | RTLD_GLOBAL):(RTLD_NOW | RTLD_GLOBAL));
+			}
+			if (!h)
+			{
+				h = ::dlopen(file.c_str(), cLoadLazy?(RTLD_LAZY | RTLD_GLOBAL):(RTLD_NOW | RTLD_GLOBAL));
+			}
+		}
 		return h;
 	}
 
