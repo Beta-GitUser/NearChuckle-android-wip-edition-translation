@@ -21,7 +21,13 @@ if (ANDROID)
         include_directories(${CMAKE_PREFIX_PATH}/include)
         link_directories(${CMAKE_PREFIX_PATH}/lib)
     endif()
-    add_compile_options(-w -fPIC)
+    add_compile_options(
+        -w
+        -fPIC
+        -Wno-error=pointer-to-int-cast
+        -Wno-pointer-to-int-cast
+        -Wno-int-to-pointer-cast
+    )
 elseif (CMAKE_SIZEOF_VOID_P EQUAL 8)
     set(ARCH_TYPE "x64")
 else (CMAKE_SIZEOF_VOID_P EQUAL 4)
