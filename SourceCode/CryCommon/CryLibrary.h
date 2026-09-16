@@ -71,9 +71,25 @@
 
 	static HMODULE CryLoadLibrary(const char* libName, const bool cAppend = true, const bool cLoadLazy = false)
 	{
-		string newLibName(GetModulePath());
-		newLibName += libName;
-		return ::dlopen(newLibName.c_str(), cLoadLazy?(RTLD_LAZY | RTLD_GLOBAL):(RTLD_NOW | RTLD_GLOBAL));
+		const char* pModPath = GetModulePath();
+		string newLibName = "";
+		if (pModPath && strlen(pModPath) > 0)
+		{
+			newLibName = pModPath;
+			if (newLibName.back() != '/')
+				newLibName += "/";
+			newLibName += libName;
+		}
+		HMODULE h = NULL;
+		if (!newLibName.empty())
+		{
+			h = ::dlopen(newLibName.c_str(), cLoadLazy?(RTLD_LAZY | RTLD_GLOBAL):(RTLD_NOW | RTLD_GLOBAL));
+		}
+		if (!h)
+		{
+			h = ::dlopen(libName, cLoadLazy?(RTLD_LAZY | RTLD_GLOBAL):(RTLD_NOW | RTLD_GLOBAL));
+		}
+		return h;
 	}
 
 

@@ -17,6 +17,7 @@
 #include <SDL.h>
 #else
 #include <SDL3/SDL.h>
+#include <SDL3/SDL_main.h>
 #endif
 
 #ifdef WIN32
@@ -179,6 +180,23 @@ void SetMasterCDFolder()
 	strcat( path_buffer,".." );
 	SetCurrentDirectory( path_buffer );
 	GetCurrentDirectory( sizeof(szMasterCDFolder),szMasterCDFolder );
+#elif defined(__ANDROID__)
+	const char* pDataDir = getenv("FARCRY_DATA_DIR");
+	if (pDataDir && strlen(pDataDir) > 0)
+	{
+		strncpy(szMasterCDFolder, pDataDir, sizeof(szMasterCDFolder) - 1);
+		szMasterCDFolder[sizeof(szMasterCDFolder) - 1] = '\0';
+		chdir(szMasterCDFolder);
+	}
+	else
+	{
+		getcwd(szMasterCDFolder, sizeof(szMasterCDFolder));
+	}
+	const char* pModPath = getenv("MODULE_PATH");
+	if (pModPath && strlen(pModPath) > 0)
+	{
+		SetModulePath(pModPath);
+	}
 #else
 	char* last_slash;
 	char dll_path[_MAX_PATH];
@@ -751,7 +769,21 @@ bool RunGame(int argc, char** argv)
 		//		return false;
 		//	}
 		//}
+#ifdef __ANDROID__
+		string sysPath = DLL_SYSTEM;
+		if (GetModulePath() && strlen(GetModulePath()) > 0)
+		{
+			sysPath = string(GetModulePath());
+			if (sysPath.back() != '/')
+				sysPath += "/";
+			sysPath += DLL_SYSTEM;
+		}
+		g_hSystemHandle = SDL_LoadObject(sysPath.c_str());
+		if (!g_hSystemHandle)
+			g_hSystemHandle = SDL_LoadObject(DLL_SYSTEM);
+#else
 		g_hSystemHandle = SDL_LoadObject((string(szMasterCDFolder) + "/" + DLL_SYSTEM).c_str());
+#endif
 		if (!g_hSystemHandle)
 		{
 			string errorStr = "CrySystem.dll Loading Failed:\n";

@@ -1,8 +1,12 @@
 project(XRenderOGL)
 
-add_definitions(-DENABLE_FRAME_PROFILER -DPROC_INTEL -DOPENGL -D_USRDLL -DXRENDEROGL_EXPORTS -DDO_RENDERLOG -DDO_RENDERSTATS -D_RENDERER -DUSE_3DC)
+add_definitions(-DENABLE_FRAME_PROFILER -DOPENGL -D_USRDLL -DXRENDEROGL_EXPORTS -DDO_RENDERLOG -DDO_RENDERSTATS -D_RENDERER -DUSE_3DC)
 if (${ARCH_TYPE} STREQUAL "x86")
-    add_definitions(-DDO_ASM)
+    add_definitions(-DPROC_INTEL -DDO_ASM)
+endif()
+
+if (ANDROID)
+    set(DISABLE_CG ON)
 endif()
 
 option(DISABLE_CG "DISABLE CG Compiler shaders" OFF)
@@ -174,6 +178,13 @@ if (MSVC)
         "OpenGL32.lib"
         "cg.lib"
         "cgGL.lib"
+    )
+elseif (ANDROID)
+    set(SYSTEM_DEPS
+        GL
+        log
+        dl
+        m
     )
 else()
     set(SYSTEM_DEPS

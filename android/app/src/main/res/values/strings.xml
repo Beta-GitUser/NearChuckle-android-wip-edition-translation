@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Far Cry Android</string>
+    <string name="launcher_title">NearChuckle - Far Cry Launcher</string>
+    <string name="launcher_subtitle">Порт Far Cry (CryEngine 1) для Android с поддержкой Mesa Zink &amp; Turnip</string>
+
+    <!-- Game Data Section -->
+    <string name="section_game_data">Файлы игры Far Cry</string>
+    <string name="game_path_hint">Укажите папку с файлами Far Cry (FCData, Levels)</string>
+    <string name="btn_select_folder">Выбрать папку</string>
+    <string name="status_files_found">✓ Файлы Far Cry обнаружены</string>
+    <string name="status_files_missing">⚠ Файлы игры не найдены. Укажите правильную папку</string>
+
+    <!-- Graphics Section -->
+    <string name="section_graphics">Графика и Рендерер</string>
+    <string name="switch_use_zink">Включить Mesa Zink (OpenGL через Vulkan)</string>
+    <string name="desc_use_zink">Использует трансляцию OpenGL 2.1 в Vulkan для высокой совместимости и шейдеров</string>
+    <string name="label_resolution">Разрешение экрана:</string>
+    <string name="label_fov">Поле зрения (FOV):</string>
+    <string name="switch_devmode">Режим разработчика (-DEVMODE)</string>
+    <string name="label_custom_args">Дополнительные параметры запуска:</string>
+
+    <!-- GPU Driver Section -->
+    <string name="section_driver">Драйвер GPU (Turnip / Adreno)</string>
+    <string name="label_active_driver">Активный Vulkan драйвер:</string>
+    <string name="btn_install_driver_zip">Установить Turnip драйвер из ZIP</string>
+    <string name="btn_delete_driver">Удалить</string>
+    <string name="switch_gpu_turbo">Режим GPU Turbo (макс. частоты Adreno)</string>
+    <string name="desc_gpu_turbo">Блокирует GPU на максимальной частоте через adrenotools</string>
+    <string name="gpu_adreno_detected">✓ Обнаружен графический чип Qualcomm Adreno</string>
+    <string name="gpu_other_detected">Обнаружен графический процессор (Mali/PowerVR/x86)</string>
+
+    <!-- Touch Controls Section -->
+    <string name="section_controls">Сенсорное управление</string>
+    <string name="btn_configure_controls">Настройка экранных кнопок (EDIT)</string>
+    <string name="label_mouse_sensitivity">Чувствительность обзора камеры:</string>
+    <string name="label_controls_opacity">Прозрачность кнопок:</string>
+    <string name="switch_hide_controls">Скрыть сенсорные кнопки (для геймпада / клавиатуры)</string>
+
+    <!-- Launch Button -->
+    <string name="btn_launch_game">ЗАПУСТИТЬ FAR CRY</string>
+
+    <!-- Dialogs -->
+    <string name="dialog_driver_installed">Драйвер успешно установлен!</string>
+    <string name="dialog_driver_install_failed">Ошибка при установке драйвера: </string>
+    <string name="dialog_confirm_delete">Удалить выбранный драйвер?</string>
+    <string name="yes">Да</string>
+    <string name="no">Нет</string>
+    <string name="ok">OK</string>
+    <string name="cancel">Отмена</string>
+</resources>
