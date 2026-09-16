@@ -27,6 +27,11 @@ if (ANDROID)
         -Wno-error=pointer-to-int-cast
         -Wno-pointer-to-int-cast
         -Wno-int-to-pointer-cast
+        -Wno-error=address-of-temporary
+        -Wno-address-of-temporary
+    )
+    add_link_options(
+        -Wl,--allow-shlib-undefined
     )
 elseif (CMAKE_SIZEOF_VOID_P EQUAL 8)
     set(ARCH_TYPE "x64")
