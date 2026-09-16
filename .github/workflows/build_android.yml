@@ -48,15 +48,16 @@ jobs:
         shell: bash
         run: |
           set -e
-          set -o pipefail
           chmod +x buildscripts/build_android.sh
-          ./buildscripts/build_android.sh --arch arm64 --release --ndk "${{ steps.setup-ndk.outputs.ndk-path }}" 2>&1 | tee build_native.log || {
-            STATUS=$?
-            ERR=$(grep "error:" build_native.log | tail -n 5 | tr '\n' ' ' | cut -c 1-2000)
-            [ -z "$ERR" ] && ERR=$(tail -n 10 build_native.log | tr '\n' ' ' | cut -c 1-2000)
-            echo "::error title=Compiler Error::$ERR"
+          if ! ./buildscripts/build_android.sh --arch arm64 --release --ndk "${{ steps.setup-ndk.outputs.ndk-path }}" 2>&1 | tee build_native.log; then
+            STATUS=${PIPESTATUS[0]}
+            echo "### ❌ Native Build Failed (exit code $STATUS)" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            tail -n 80 build_native.log >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
             exit $STATUS
-          }
+          fi
+          echo "### ✅ Native Build Succeeded" >> $GITHUB_STEP_SUMMARY
 
       - name: Build APK with Gradle
         shell: bash

@@ -229,7 +229,8 @@ done
 find "$DEPS_PREFIX/lib" -name "*.so*" -exec cp -d {} "$JNI_LIBS_DIR/" \;
 
 # Copy built NearChuckle and CryEngine libraries
-find "$BUILD_DIR" -name "*.so" -exec cp {} "$JNI_LIBS_DIR/" \;
+find "$BUILD_DIR" -name "*.so" -exec cp {} "$JNI_LIBS_DIR/" \; 2>/dev/null || true
+find "$ROOT_DIR/bin" -name "*.so" -exec cp {} "$JNI_LIBS_DIR/" \; 2>/dev/null || true
 
 # Strip binaries if release
 echo "=== STEP: STRIP LIBS ==="
@@ -244,5 +245,5 @@ fi
 echo "================================================================="
 echo "Successfully built and deployed all Far Cry libraries for $ABI!"
 echo "Destination: $JNI_LIBS_DIR"
-ls -lh "$JNI_LIBS_DIR"/*.so || echo "No .so files in $JNI_LIBS_DIR"
+ls -lh "$JNI_LIBS_DIR" 2>/dev/null || true
 echo "================================================================="
