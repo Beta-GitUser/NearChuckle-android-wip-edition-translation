@@ -52,8 +52,8 @@ jobs:
           chmod +x buildscripts/build_android.sh
           ./buildscripts/build_android.sh --arch arm64 --release --ndk "${{ steps.setup-ndk.outputs.ndk-path }}" 2>&1 | tee build_native.log || {
             STATUS=$?
-            ERR=$(grep -C 2 -i "error:" build_native.log | tail -n 8 | tr '\n' ' ' | head -c 250)
-            [ -z "$ERR" ] && ERR=$(tail -n 5 build_native.log | tr '\n' ' ' | head -c 250)
+            ERR=$(grep "error:" build_native.log | tail -n 5 | tr '\n' ' ' | cut -c 1-2000)
+            [ -z "$ERR" ] && ERR=$(tail -n 10 build_native.log | tr '\n' ' ' | cut -c 1-2000)
             echo "::error title=Compiler Error::$ERR"
             exit $STATUS
           }

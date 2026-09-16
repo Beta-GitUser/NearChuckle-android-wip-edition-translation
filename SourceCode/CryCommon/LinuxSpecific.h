@@ -199,13 +199,16 @@ typedef struct in_addr_windows
 //#define __TIMESTAMP__ __DATE__" "__TIME__
 
 // function renaming
-#if defined(__ANDROID__)
-#define _finite isfinite
+#ifdef __cplusplus
+#include <cmath>
+#define _finite std::isfinite
+#define _isnan std::isnan
 #else
+#include <math.h>
 #define _finite isfinite
+#define _isnan isnan
 #endif
 #define _snprintf snprintf
-#define _isnan isnan
 #define stricmp strcasecmp
 #define _stricmp strcasecmp
 #define strnicmp strncasecmp
