@@ -50,7 +50,19 @@ jobs:
           set -e
           set -o pipefail
           chmod +x buildscripts/build_android.sh
-          ./buildscripts/build_android.sh --arch arm64 --release --ndk "${{ steps.setup-ndk.outputs.ndk-path }}" 2>&1 | tee build_native.log
+          ./buildscripts/build_android.sh --arch arm64 --release --ndk "${{ steps.setup-ndk.outputs.ndk-path }}" 2>&1 | tee build_native.log || {
+            STATUS=$?
+            echo "::error::Native build failed with exit code $STATUS"
+            echo "### ❌ Compilation Errors" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            grep -C 5 -i "error:" build_native.log | tail -n 80 >> $GITHUB_STEP_SUMMARY || tail -n 60 build_native.log >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            echo "=== EXTRACTED ERRORS ==="
+            grep -C 3 -i "error:" build_native.log | tail -n 60 || true
+            echo "=== TAIL OF LOG ==="
+            tail -n 60 build_native.log
+            exit $STATUS
+          }
 
       - name: Build APK with Gradle
         shell: bash
@@ -58,7 +70,16 @@ jobs:
           set -e
           set -o pipefail
           chmod +x android/gradlew
-          ./android/gradlew -p android :app:assembleRelease --stacktrace 2>&1 | tee build_apk.log
+          ./android/gradlew -p android :app:assembleRelease --stacktrace 2>&1 | tee build_apk.log || {
+            STATUS=$?
+            echo "::error::Gradle build failed with exit code $STATUS"
+            echo "### ❌ Gradle Build Errors" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            tail -n 80 build_apk.log >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            tail -n 80 build_apk.log
+            exit $STATUS
+          }
 
       - name: Inspect Built APK
         shell: bash
