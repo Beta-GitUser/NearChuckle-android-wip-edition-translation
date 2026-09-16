@@ -62,10 +62,11 @@ case "$ARCH" in
 esac
 
 if [ -z "$NDK_PATH" ] || [ ! -d "$NDK_PATH" ]; then
-    # Try finding NDK in common locations
     COMMON_LOCATIONS=(
+        "$ANDROID_HOME/ndk/"*
         "$HOME/Android/Sdk/ndk/"*
         "$HOME/Android/Sdk/ndk-bundle"
+        "/usr/local/lib/android/sdk/ndk/"*
         "/opt/android-ndk"*
         "/opt/android-sdk/ndk/"*
     )
@@ -79,7 +80,7 @@ fi
 
 if [ -z "$NDK_PATH" ] || [ ! -d "$NDK_PATH" ]; then
     echo "================================================================="
-    echo "WARNING: Android NDK not found in environment."
+    echo "ERROR: Android NDK not found in environment."
     echo "Please set ANDROID_NDK_HOME or specify --ndk /path/to/android-ndk"
     echo "================================================================="
     exit 1
@@ -91,13 +92,101 @@ if [ ! -f "$TOOLCHAIN_FILE" ]; then
     exit 1
 fi
 
+NPROC=$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4)
+DEPS_ROOT="$ROOT_DIR/build_android/deps"
+DEPS_PREFIX="$DEPS_ROOT/installed/$ABI"
+SRC_CACHE="/tmp/nearchuckle_deps"
+mkdir -p "$DEPS_PREFIX" "$SRC_CACHE"
+
 echo "================================================================="
 echo "Building NearChuckle (Far Cry) for Android"
-echo "  ABI:        $ABI"
-echo "  Build Type: $BUILD_TYPE"
-echo "  NDK Path:   $NDK_PATH"
+echo "  ABI:         $ABI"
+echo "  Build Type:  $BUILD_TYPE"
+echo "  NDK Path:    $NDK_PATH"
+echo "  Deps Prefix: $DEPS_PREFIX"
 echo "================================================================="
 
+# 1. Build SDL3
+if [ ! -f "$DEPS_PREFIX/lib/libSDL3.so" ]; then
+    echo "--> Building SDL3 for $ABI..."
+    if [ ! -d "$SRC_CACHE/SDL" ]; then
+        if [ -d "/tmp/SDL3" ]; then
+            cp -r /tmp/SDL3 "$SRC_CACHE/SDL"
+        else
+            git clone --depth 1 https://github.com/libsdl-org/SDL "$SRC_CACHE/SDL"
+        fi
+    fi
+    cmake -B "$DEPS_ROOT/build-sdl3-$ABI" -S "$SRC_CACHE/SDL" \
+        -DCMAKE_TOOLCHAIN_FILE="$TOOLCHAIN_FILE" \
+        -DANDROID_ABI="$ABI" \
+        -DANDROID_PLATFORM=android-24 \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_INSTALL_PREFIX="$DEPS_PREFIX" \
+        -DSDL_SHARED=ON \
+        -DSDL_STATIC=OFF \
+        -DSDL_TEST_LIBRARY=OFF
+    cmake --build "$DEPS_ROOT/build-sdl3-$ABI" --target install -- -j"$NPROC"
+fi
+
+# 2. Build libogg
+if [ ! -f "$DEPS_PREFIX/lib/libogg.so" ]; then
+    echo "--> Building libogg for $ABI..."
+    if [ ! -d "$SRC_CACHE/ogg" ]; then
+        git clone --depth 1 https://github.com/xiph/ogg "$SRC_CACHE/ogg"
+    fi
+    cmake -B "$DEPS_ROOT/build-ogg-$ABI" -S "$SRC_CACHE/ogg" \
+        -DCMAKE_TOOLCHAIN_FILE="$TOOLCHAIN_FILE" \
+        -DANDROID_ABI="$ABI" \
+        -DANDROID_PLATFORM=android-24 \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_INSTALL_PREFIX="$DEPS_PREFIX" \
+        -DBUILD_SHARED_LIBS=ON \
+        -DINSTALL_DOCS=OFF
+    cmake --build "$DEPS_ROOT/build-ogg-$ABI" --target install -- -j"$NPROC"
+fi
+
+# 3. Build libvorbis
+if [ ! -f "$DEPS_PREFIX/lib/libvorbis.so" ]; then
+    echo "--> Building libvorbis for $ABI..."
+    if [ ! -d "$SRC_CACHE/vorbis" ]; then
+        git clone --depth 1 https://github.com/xiph/vorbis "$SRC_CACHE/vorbis"
+    fi
+    cmake -B "$DEPS_ROOT/build-vorbis-$ABI" -S "$SRC_CACHE/vorbis" \
+        -DCMAKE_TOOLCHAIN_FILE="$TOOLCHAIN_FILE" \
+        -DANDROID_ABI="$ABI" \
+        -DANDROID_PLATFORM=android-24 \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_INSTALL_PREFIX="$DEPS_PREFIX" \
+        -DBUILD_SHARED_LIBS=ON \
+        -DOGG_ROOT="$DEPS_PREFIX"
+    cmake --build "$DEPS_ROOT/build-vorbis-$ABI" --target install -- -j"$NPROC"
+fi
+
+# 4. Build openal-soft
+if [ ! -f "$DEPS_PREFIX/lib/libopenal.so" ]; then
+    echo "--> Building openal-soft for $ABI..."
+    if [ ! -d "$SRC_CACHE/openal-soft" ]; then
+        if [ -d "/tmp/openal-soft" ]; then
+            cp -r /tmp/openal-soft "$SRC_CACHE/openal-soft"
+        else
+            git clone --depth 1 https://github.com/kcat/openal-soft "$SRC_CACHE/openal-soft"
+        fi
+    fi
+    cmake -B "$DEPS_ROOT/build-openal-$ABI" -S "$SRC_CACHE/openal-soft" \
+        -DCMAKE_TOOLCHAIN_FILE="$TOOLCHAIN_FILE" \
+        -DANDROID_ABI="$ABI" \
+        -DANDROID_PLATFORM=android-24 \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_INSTALL_PREFIX="$DEPS_PREFIX" \
+        -DLIBTYPE=SHARED \
+        -DALSOFT_UTILS=OFF \
+        -DALSOFT_EXAMPLES=OFF \
+        -DALSOFT_TESTS=OFF
+    cmake --build "$DEPS_ROOT/build-openal-$ABI" --target install -- -j"$NPROC"
+fi
+
+# 5. Build NearChuckle Engine
+echo "--> Building NearChuckle Engine for $ABI..."
 BUILD_DIR="$ROOT_DIR/build_android/$ABI"
 mkdir -p "$BUILD_DIR"
 
@@ -107,10 +196,14 @@ cmake -B "$BUILD_DIR" -S "$ROOT_DIR" \
     -DANDROID_PLATFORM=android-24 \
     -DANDROID_STL=c++_shared \
     -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
+    -DCMAKE_PREFIX_PATH="$DEPS_PREFIX" \
+    -DCMAKE_FIND_ROOT_PATH="$DEPS_PREFIX;$NDK_PATH/toolchains/llvm/prebuilt/linux-x86_64/sysroot" \
+    -DCMAKE_INCLUDE_PATH="$DEPS_PREFIX/include" \
+    -DCMAKE_LIBRARY_PATH="$DEPS_PREFIX/lib" \
     -DDISABLE_CG=ON \
+    -DDISABLE_FFMPEG=ON \
     -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 
-NPROC=$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4)
 cmake --build "$BUILD_DIR" -- -j"$NPROC"
 
 JNI_LIBS_DIR="$ROOT_DIR/android/app/src/main/jniLibs/$ABI"
@@ -123,6 +216,9 @@ find "$NDK_PATH" -name "libc++_shared.so" | grep "$ABI" | head -n 1 | while read
     cp "$lib" "$JNI_LIBS_DIR/"
 done
 
+# Copy dependency libraries (SDL3, openal, ogg, vorbis, vorbisfile)
+find "$DEPS_PREFIX/lib" -name "*.so*" -exec cp -d {} "$JNI_LIBS_DIR/" \;
+
 # Copy built NearChuckle and CryEngine libraries
 find "$BUILD_DIR" -name "*.so" -exec cp {} "$JNI_LIBS_DIR/" \;
 
@@ -134,6 +230,7 @@ if [ "$BUILD_TYPE" = "Release" ] && [ -n "$STRIP_TOOL" ] && [ -x "$STRIP_TOOL" ]
 fi
 
 echo "================================================================="
-echo "Successfully built and deployed Far Cry libraries for $ABI!"
+echo "Successfully built and deployed all Far Cry libraries for $ABI!"
 echo "Destination: $JNI_LIBS_DIR"
+ls -lh "$JNI_LIBS_DIR"/*.so
 echo "================================================================="

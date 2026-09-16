@@ -55,5 +55,6 @@ else()
 endif()
 
 include_directories(${CMAKE_SOURCE_DIR}/Externals/SDL/include)
+include_directories(${CMAKE_SOURCE_DIR}/Externals/openal/include)
 
 add_subdirectory(SourceCode)
