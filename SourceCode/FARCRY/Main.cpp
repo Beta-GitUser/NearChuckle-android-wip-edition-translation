@@ -20,6 +20,8 @@
 #include <SDL3/SDL_main.h>
 #endif
 
+#include <locale.h>
+
 #ifdef WIN32
 #include <windows.h>
 #include <process.h>
@@ -105,7 +107,11 @@ static ISystem *g_pISystem=NULL;
 static bool g_bSystemRelaunch = false;
 static char szMasterCDFolder[_MAX_PATH];
 
+#ifdef WIN32
 static void* g_hSystemHandle=NULL;
+#else
+static SDL_SharedObject* g_hSystemHandle=NULL;
+#endif
 #ifdef _WIN32
 #define DLL_SYSTEM "CrySystem.dll"
 #define DLL_GAME	 "CryGame.dll"
