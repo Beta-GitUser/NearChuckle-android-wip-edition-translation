@@ -52,18 +52,18 @@ jobs:
         run: |
           chmod +x buildscripts/build_android.sh
           echo "Starting native build..."
-          ./buildscripts/build_android.sh --arch arm64 --release --ndk "${{ steps.setup-ndk.outputs.ndk-path }}" > build_native.log 2>&1
-          STATUS=$?
+          ./buildscripts/build_android.sh --arch arm64 --release --ndk "${{ steps.setup-ndk.outputs.ndk-path }}" > build_native.log 2>&1 || STATUS=$?
+          STATUS=${STATUS:-0}
           echo "Native build finished with status $STATUS"
           if [ $STATUS -ne 0 ]; then
-            echo "::error title=Native Build Failed::Exit code $STATUS"
-            echo "========== NATIVE BUILD LOG TAIL =========="
-            tail -n 120 build_native.log
-            echo "==========================================="
+            ERR_GREP=$(grep -E -i "error:" build_native.log | tail -n 15 | tr '\r\n' ' ' | sed 's/"/\\"/g' | cut -c 1-2000)
+            [ -n "$ERR_GREP" ] && echo "::error file=.github/workflows/build_android.yml,line=47,title=Build Errors::$ERR_GREP"
+            
+            TAIL_LOG=$(tail -n 25 build_native.log | tr '\r\n' ' ' | sed 's/"/\\"/g' | cut -c 1-2000)
+            echo "::error file=.github/workflows/build_android.yml,line=48,title=Log Tail::$TAIL_LOG"
             exit $STATUS
           fi
           echo "### ✅ Native Build Succeeded" >> $GITHUB_STEP_SUMMARY
-          tail -n 30 build_native.log
 
       - name: Build APK with Gradle
         shell: bash
