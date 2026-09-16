@@ -16,6 +16,7 @@
 #define _CRY_COMMON_LINUX_SPECIFIC_HDR_
 
 #include <stdint.h>
+#include <stddef.h>
 #include <pthread.h>
 #include <math.h>
 #include <string.h>
@@ -85,7 +86,7 @@ inline int IsHeapValid ()
 #define TEXT
 
 #ifndef __cplusplus
-#ifndef _WCHAR_T_DEFINED
+#if !defined(_WCHAR_T_DEFINED) && !defined(__WCHAR_TYPE__) && !defined(__ANDROID__)
 typedef unsigned short wchar_t;
 #define TCHAR wchar_t;
 #define _WCHAR_T_DEFINED
