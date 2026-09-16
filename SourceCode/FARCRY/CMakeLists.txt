@@ -1,9 +1,12 @@
 project(FarCry)
 
 set(SRC_FILES
-    "FarCry.rc"
     "Main.cpp"
 )
+
+if (WIN32)
+    list(APPEND SRC_FILES "FarCry.rc")
+endif()
 
 if (ANDROID)
     add_library(${PROJECT_NAME} SHARED ${SRC_FILES})
