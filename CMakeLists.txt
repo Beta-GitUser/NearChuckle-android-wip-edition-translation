@@ -4,6 +4,11 @@ cmake_policy(VERSION 3.12)
 project(farcry LANGUAGES CXX)
 
 if (ANDROID)
+    set(ANDROID_ALLOW_UNDEFINED_SYMBOLS ON CACHE BOOL "" FORCE)
+    string(REPLACE "-Wl,--no-undefined" "" CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS}")
+    string(REPLACE "-Wl,--fatal-warnings" "" CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS}")
+    string(REPLACE "-Wl,--no-undefined" "" CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS}")
+    string(REPLACE "-Wl,--fatal-warnings" "" CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS}")
     if (CMAKE_ANDROID_ARCH_ABI STREQUAL "arm64-v8a" OR CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|arm64")
         set(ARCH_TYPE "arm64")
         add_definitions(-DLINUX -DLINUX64 -D__linux__ -D__ANDROID__ -D_CPU_ARM64 -D_ARM64_)
@@ -32,6 +37,7 @@ if (ANDROID)
     )
     add_link_options(
         -Wl,--unresolved-symbols=ignore-all
+        -Wl,--no-fatal-warnings
     )
     link_libraries(SDL3 log dl m)
 elseif (CMAKE_SIZEOF_VOID_P EQUAL 8)

@@ -195,10 +195,11 @@ cmake -B "$BUILD_DIR" -S "$ROOT_DIR" \
     -DANDROID_ABI="$ABI" \
     -DANDROID_PLATFORM=android-24 \
     -DANDROID_STL=c++_shared \
+    -DANDROID_ALLOW_UNDEFINED_SYMBOLS=ON \
     -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
     -DCMAKE_PREFIX_PATH="$DEPS_PREFIX" \
-    -DCMAKE_SHARED_LINKER_FLAGS="-L$DEPS_PREFIX/lib -Wl,--unresolved-symbols=ignore-all" \
-    -DCMAKE_EXE_LINKER_FLAGS="-L$DEPS_PREFIX/lib -Wl,--unresolved-symbols=ignore-all" \
+    -DCMAKE_SHARED_LINKER_FLAGS="-L$DEPS_PREFIX/lib -Wl,--unresolved-symbols=ignore-all -Wl,--no-fatal-warnings" \
+    -DCMAKE_EXE_LINKER_FLAGS="-L$DEPS_PREFIX/lib -Wl,--unresolved-symbols=ignore-all -Wl,--no-fatal-warnings" \
     -DDISABLE_CG=ON \
     -DDISABLE_FFMPEG=ON \
     -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
