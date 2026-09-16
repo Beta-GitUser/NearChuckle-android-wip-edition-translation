@@ -186,7 +186,7 @@ if [ ! -f "$DEPS_PREFIX/lib/libopenal.so" ]; then
 fi
 
 # 5. Build NearChuckle Engine
-echo "--> Building NearChuckle Engine for $ABI..."
+echo "=== STEP: CMAKE CONFIGURE ENGINE ==="
 BUILD_DIR="$ROOT_DIR/build_android/$ABI"
 mkdir -p "$BUILD_DIR"
 
@@ -203,12 +203,12 @@ cmake -B "$BUILD_DIR" -S "$ROOT_DIR" \
     -DDISABLE_FFMPEG=ON \
     -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 
+echo "=== STEP: CMAKE BUILD ENGINE ==="
 cmake --build "$BUILD_DIR" --verbose -- -j"$NPROC"
 
+echo "=== STEP: DEPLOY SHARED LIBS ==="
 JNI_LIBS_DIR="$ROOT_DIR/android/app/src/main/jniLibs/$ABI"
 mkdir -p "$JNI_LIBS_DIR"
-
-echo "Deploying shared libraries to $JNI_LIBS_DIR..."
 
 # Copy libc++_shared
 find "$NDK_PATH" -name "libc++_shared.so" | grep "$ABI" | head -n 1 | while read -r lib; do
@@ -222,14 +222,17 @@ find "$DEPS_PREFIX/lib" -name "*.so*" -exec cp -d {} "$JNI_LIBS_DIR/" \;
 find "$BUILD_DIR" -name "*.so" -exec cp {} "$JNI_LIBS_DIR/" \;
 
 # Strip binaries if release
+echo "=== STEP: STRIP LIBS ==="
 STRIP_TOOL=$(find "$NDK_PATH" -name "llvm-strip" | head -n 1)
 if [ "$BUILD_TYPE" = "Release" ] && [ -n "$STRIP_TOOL" ] && [ -x "$STRIP_TOOL" ]; then
     echo "Stripping shared libraries..."
-    "$STRIP_TOOL" "$JNI_LIBS_DIR"/*.so 2>/dev/null || true
+    for sofile in "$JNI_LIBS_DIR"/*.so; do
+        [ -f "$sofile" ] && "$STRIP_TOOL" "$sofile" 2>/dev/null || true
+    done
 fi
 
 echo "================================================================="
 echo "Successfully built and deployed all Far Cry libraries for $ABI!"
 echo "Destination: $JNI_LIBS_DIR"
-ls -lh "$JNI_LIBS_DIR"/*.so
+ls -lh "$JNI_LIBS_DIR"/*.so || echo "No .so files in $JNI_LIBS_DIR"
 echo "================================================================="

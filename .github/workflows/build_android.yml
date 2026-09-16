@@ -52,15 +52,9 @@ jobs:
           chmod +x buildscripts/build_android.sh
           ./buildscripts/build_android.sh --arch arm64 --release --ndk "${{ steps.setup-ndk.outputs.ndk-path }}" 2>&1 | tee build_native.log || {
             STATUS=$?
-            echo "::error::Native build failed with exit code $STATUS"
-            echo "### ❌ Compilation Errors" >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            grep -C 5 -i "error:" build_native.log | tail -n 80 >> $GITHUB_STEP_SUMMARY || tail -n 60 build_native.log >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            echo "=== EXTRACTED ERRORS ==="
-            grep -C 3 -i "error:" build_native.log | tail -n 60 || true
-            echo "=== TAIL OF LOG ==="
-            tail -n 60 build_native.log
+            ERR=$(grep -C 2 -i "error:" build_native.log | tail -n 8 | tr '\n' ' ' | head -c 250)
+            [ -z "$ERR" ] && ERR=$(tail -n 5 build_native.log | tr '\n' ' ' | head -c 250)
+            echo "::error title=Compiler Error::$ERR"
             exit $STATUS
           }
 
