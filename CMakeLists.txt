@@ -31,8 +31,9 @@ if (ANDROID)
         -Wno-address-of-temporary
     )
     add_link_options(
-        -Wl,--allow-shlib-undefined
+        -Wl,--unresolved-symbols=ignore-all
     )
+    link_libraries(SDL3 log dl m)
 elseif (CMAKE_SIZEOF_VOID_P EQUAL 8)
     set(ARCH_TYPE "x64")
 else (CMAKE_SIZEOF_VOID_P EQUAL 4)
