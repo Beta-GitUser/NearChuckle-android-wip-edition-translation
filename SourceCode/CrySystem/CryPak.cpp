@@ -32,7 +32,7 @@
 #endif
 
 #ifdef LINUX
-#include <sys/dir.h>
+#include <dirent.h>
 #include <unistd.h>
 #else
 #	include <direct.h>
