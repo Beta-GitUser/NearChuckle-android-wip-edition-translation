@@ -60,42 +60,50 @@ jobs:
 
       - name: Build APK with Gradle
         run: |
-          cd android
-          chmod +x gradlew
-          ./gradlew assembleDebug assembleRelease --stacktrace 2>&1 | tee ../build_apk.log || {
+          chmod +x android/gradlew
+          ./android/gradlew -p android assembleDebug assembleRelease --stacktrace 2>&1 | tee build_apk.log || {
             STATUS=$?
             echo "::error::Gradle build failed with exit code $STATUS"
             echo "### ❌ Gradle Build Failure Log" >> $GITHUB_STEP_SUMMARY
             echo '```' >> $GITHUB_STEP_SUMMARY
-            tail -n 150 ../build_apk.log >> $GITHUB_STEP_SUMMARY
+            tail -n 150 build_apk.log >> $GITHUB_STEP_SUMMARY
             echo '```' >> $GITHUB_STEP_SUMMARY
-            tail -n 100 ../build_apk.log
+            tail -n 100 build_apk.log
             exit $STATUS
           }
 
       - name: Inspect Built APK
         run: |
-          echo "================ APK Output ================"
-          find android/app/build -name "*.apk"
+          echo "================ All APKs in Workspace ================"
+          find . -name "*.apk" -ls
+          echo "================ Tasks executed in Gradle ================"
+          grep -E "> Task|BUILD" build_apk.log || true
+
+          APK_COUNT=$(find . -name "*.apk" | wc -l)
+          if [ "$APK_COUNT" -eq 0 ]; then
+            echo "::error::No APK found in repository!"
+            echo "### ❌ Gradle Output Tail" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            tail -n 100 build_apk.log >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            tail -n 100 build_apk.log
+            exit 1
+          fi
+
           echo "### 📦 Generated APKs" >> $GITHUB_STEP_SUMMARY
-          for APK in $(find android/app/build -name "*.apk"); do
+          for APK in $(find . -name "*.apk"); do
             echo "Found APK: $APK"
             ls -lh "$APK"
-            echo "- **$(basename $APK)** ($(ls -lh $APK | awk '{print $5}'))" >> $GITHUB_STEP_SUMMARY
+            echo "- **$(basename $APK)** ($(ls -lh $APK | awk '{print $5}')) - \`$APK\`" >> $GITHUB_STEP_SUMMARY
             echo "=== Packaged native libraries (.so) in $(basename $APK) ==="
             unzip -l "$APK" | grep "lib/arm64-v8a" || true
           done
-          APK_COUNT=$(find android/app/build -name "*.apk" | wc -l)
-          if [ "$APK_COUNT" -eq 0 ]; then
-            echo "ERROR: No APK found!"
-            exit 1
-          fi
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: NearChuckle-FarCry-Android-APK
-          path: android/app/build/**/*.apk
+          path: ./**/*.apk
           retention-days: 30
 
       - name: Upload Native .SO Libraries Artifact
