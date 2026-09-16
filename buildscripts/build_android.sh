@@ -1,5 +1,6 @@
 #!/bin/bash
 set -e
+set -o pipefail
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 ROOT_DIR="$( cd "$DIR/.." && pwd )"
@@ -202,7 +203,7 @@ cmake -B "$BUILD_DIR" -S "$ROOT_DIR" \
     -DDISABLE_FFMPEG=ON \
     -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 
-cmake --build "$BUILD_DIR" -- -j"$NPROC"
+cmake --build "$BUILD_DIR" --verbose -- -j"$NPROC"
 
 JNI_LIBS_DIR="$ROOT_DIR/android/app/src/main/jniLibs/$ABI"
 mkdir -p "$JNI_LIBS_DIR"
