@@ -215,7 +215,11 @@ typedef std::wstring wstring;
 #define SIGN_MASK(x) ((intptr_t)(x) >> ((sizeof(size_t)*8)-1))
 
 // macro for structure alignement
-#ifdef LINUX
+#if defined(__cplusplus)
+#define DEFINE_ALIGNED_DATA( type, name, alignment ) alignas(alignment) type name;
+#define DEFINE_ALIGNED_DATA_STATIC( type, name, alignment ) alignas(alignment) static type name;
+#define DEFINE_ALIGNED_DATA_CONST( type, name, alignment ) alignas(alignment) const type name;
+#elif defined(LINUX)
 #define DEFINE_ALIGNED_DATA( type, name, alignment ) type name __attribute__ ((aligned(alignment)));
 #define DEFINE_ALIGNED_DATA_STATIC( type, name, alignment ) static type name __attribute__ ((aligned(alignment)));
 #define DEFINE_ALIGNED_DATA_CONST( type, name, alignment ) const type name __attribute__ ((aligned(alignment)));
