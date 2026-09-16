@@ -47,17 +47,20 @@ jobs:
       - name: Build Native Engine & Dependencies (ARM64)
         shell: bash
         run: |
-          set -e
           chmod +x buildscripts/build_android.sh
-          if ! ./buildscripts/build_android.sh --arch arm64 --release --ndk "${{ steps.setup-ndk.outputs.ndk-path }}" 2>&1 | tee build_native.log; then
-            STATUS=${PIPESTATUS[0]}
-            echo "### ❌ Native Build Failed (exit code $STATUS)" >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            tail -n 80 build_native.log >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "Starting native build..."
+          ./buildscripts/build_android.sh --arch arm64 --release --ndk "${{ steps.setup-ndk.outputs.ndk-path }}" > build_native.log 2>&1
+          STATUS=$?
+          echo "Native build finished with status $STATUS"
+          if [ $STATUS -ne 0 ]; then
+            echo "::error title=Native Build Failed::Exit code $STATUS"
+            echo "========== NATIVE BUILD LOG TAIL =========="
+            tail -n 120 build_native.log
+            echo "==========================================="
             exit $STATUS
           fi
           echo "### ✅ Native Build Succeeded" >> $GITHUB_STEP_SUMMARY
+          tail -n 30 build_native.log
 
       - name: Build APK with Gradle
         shell: bash
@@ -113,3 +116,14 @@ jobs:
           name: NearChuckle-FarCry-Native-SO-arm64-v8a
           path: android/app/src/main/jniLibs/arm64-v8a/*.so
           retention-days: 30
+
+      - name: Upload Build Logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          path: |
+            build_native.log
+            build_apk.log
+          if-no-files-found: ignore
+          retention-days: 7

@@ -226,11 +226,12 @@ find "$NDK_PATH" -name "libc++_shared.so" | grep "$ABI" | head -n 1 | while read
 done
 
 # Copy dependency libraries (SDL3, openal, ogg, vorbis, vorbisfile)
-find "$DEPS_PREFIX/lib" -name "*.so*" -exec cp -d {} "$JNI_LIBS_DIR/" \;
+find "$DEPS_PREFIX/lib" -name "*.so" -exec cp -L {} "$JNI_LIBS_DIR/" \;
 
 # Copy built NearChuckle and CryEngine libraries
-find "$BUILD_DIR" -name "*.so" -exec cp {} "$JNI_LIBS_DIR/" \; 2>/dev/null || true
-find "$ROOT_DIR/bin" -name "*.so" -exec cp {} "$JNI_LIBS_DIR/" \; 2>/dev/null || true
+find "$BUILD_DIR" -name "*.so" -exec cp -L {} "$JNI_LIBS_DIR/" \; 2>/dev/null || true
+find "$ROOT_DIR/bin" -name "*.so" -exec cp -L {} "$JNI_LIBS_DIR/" \; 2>/dev/null || true
+rm -f "$JNI_LIBS_DIR"/*.so.* 2>/dev/null || true
 
 # Strip binaries if release
 echo "=== STEP: STRIP LIBS ==="

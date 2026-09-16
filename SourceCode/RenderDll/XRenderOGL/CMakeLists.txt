@@ -181,6 +181,7 @@ if (MSVC)
     )
 elseif (ANDROID)
     set(SYSTEM_DEPS
+        SDL3
         log
         dl
         m
