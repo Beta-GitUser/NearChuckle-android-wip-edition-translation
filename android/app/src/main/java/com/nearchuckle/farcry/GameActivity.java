@@ -49,7 +49,7 @@ public class GameActivity extends SDLActivity {
     }
 
     @Override
-    protected void loadLibraries() {
+    public void loadLibraries() {
         Context context = this;
         SharedPreferences prefs = context.getSharedPreferences(LauncherActivity.PREFS_NAME, MODE_PRIVATE);
 
