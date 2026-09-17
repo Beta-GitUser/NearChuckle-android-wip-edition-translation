@@ -89,6 +89,7 @@ int APIENTRY gluUnProject(GLdouble winx, GLdouble winy, GLdouble winz,
 }
 
 // Standalone quadrics implementation for CGLRenderer::DrawBall
+struct GLUquadric { int dummy; };
 static GLUquadric s_gluQuadricInstance;
 
 GLUquadric* APIENTRY gluNewQuadric(void)

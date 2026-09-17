@@ -282,3 +282,4 @@ echo "Successfully built and deployed all Far Cry libraries for $ABI!"
 echo "Destination: $JNI_LIBS_DIR"
 ls -lh "$JNI_LIBS_DIR" 2>/dev/null || true
 echo "================================================================="
+exit 0

@@ -1010,60 +1010,6 @@
 #ifndef glViewport
 #define glViewport cryglViewport
 #endif
-#ifndef pwglCopyContext
-#define pwglCopyContext crypwglCopyContext
-#endif
-#ifndef pwglCreateContext
-#define pwglCreateContext crypwglCreateContext
-#endif
-#ifndef pwglCreateLayerContext
-#define pwglCreateLayerContext crypwglCreateLayerContext
-#endif
-#ifndef pwglDeleteContext
-#define pwglDeleteContext crypwglDeleteContext
-#endif
-#ifndef pwglGetCurrentContext
-#define pwglGetCurrentContext crypwglGetCurrentContext
-#endif
-#ifndef pwglGetCurrentDC
-#define pwglGetCurrentDC crypwglGetCurrentDC
-#endif
-#ifndef pwglGetProcAddress
-#define pwglGetProcAddress crypwglGetProcAddress
-#endif
-#ifndef pwglMakeCurrent
-#define pwglMakeCurrent crypwglMakeCurrent
-#endif
-#ifndef pwglShareLists
-#define pwglShareLists crypwglShareLists
-#endif
-#ifndef pwglChoosePixelFormat
-#define pwglChoosePixelFormat crypwglChoosePixelFormat
-#endif
-#ifndef pwglDescribePixelFormat
-#define pwglDescribePixelFormat crypwglDescribePixelFormat
-#endif
-#ifndef pwglSetPixelFormat
-#define pwglSetPixelFormat crypwglSetPixelFormat
-#endif
-#ifndef pwglSwapBuffers
-#define pwglSwapBuffers crypwglSwapBuffers
-#endif
-#ifndef pChoosePixelFormat
-#define pChoosePixelFormat crypChoosePixelFormat
-#endif
-#ifndef pDescribePixelFormat
-#define pDescribePixelFormat crypDescribePixelFormat
-#endif
-#ifndef pGetPixelFormat
-#define pGetPixelFormat crypGetPixelFormat
-#endif
-#ifndef pSetPixelFormat
-#define pSetPixelFormat crypSetPixelFormat
-#endif
-#ifndef pSwapBuffers
-#define pSwapBuffers crypSwapBuffers
-#endif
 #ifndef glColorTableEXT
 #define glColorTableEXT cryglColorTableEXT
 #endif
