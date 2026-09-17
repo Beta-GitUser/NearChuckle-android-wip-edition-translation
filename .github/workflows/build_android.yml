@@ -59,16 +59,22 @@ jobs:
             echo "========== NATIVE BUILD FAILED (exit code $STATUS) =========="
             tail -n 120 build_native.log
             echo "============================================================="
-            LOG_URL=$(curl -s -F'file=@build_native.log' https://0x0.st 2>/dev/null || curl -s -F'file=@build_native.log' https://envs.sh 2>/dev/null || echo "none")
-            echo "Uploaded build log: $LOG_URL"
-            echo "::notice file=README.md,line=1,title=Native Log URL::$LOG_URL"
-            echo "::error file=README.md,line=1,title=Native Build Failed Exit $STATUS::$LOG_URL"
 
-            ERR_GREP=$(grep -E -i "error:" build_native.log | tail -n 5 | tr '\r\n' ' ' | sed 's/[^a-zA-Z0-9 ._:/-]/_/g' | cut -c 1-300)
-            [ -n "$ERR_GREP" ] && echo "::error file=README.md,line=2,title=Compiler Errors::$ERR_GREP"
+            L1=$(tail -n 25 build_native.log | head -n 5 | tr '\r\n' ' | ' | sed 's/[^a-zA-Z0-9 ._:|/-]/_/g' | cut -c 1-250)
+            L2=$(tail -n 20 build_native.log | head -n 5 | tr '\r\n' ' | ' | sed 's/[^a-zA-Z0-9 ._:|/-]/_/g' | cut -c 1-250)
+            L3=$(tail -n 15 build_native.log | head -n 5 | tr '\r\n' ' | ' | sed 's/[^a-zA-Z0-9 ._:|/-]/_/g' | cut -c 1-250)
+            L4=$(tail -n 10 build_native.log | head -n 5 | tr '\r\n' ' | ' | sed 's/[^a-zA-Z0-9 ._:|/-]/_/g' | cut -c 1-250)
+            L5=$(tail -n 5 build_native.log | tr '\r\n' ' | ' | sed 's/[^a-zA-Z0-9 ._:|/-]/_/g' | cut -c 1-250)
+            [ -n "$L1" ] && echo "::error file=README.md,line=1,title=Log Tail 1::$L1"
+            [ -n "$L2" ] && echo "::error file=README.md,line=2,title=Log Tail 2::$L2"
+            [ -n "$L3" ] && echo "::error file=README.md,line=3,title=Log Tail 3::$L3"
+            [ -n "$L4" ] && echo "::error file=README.md,line=4,title=Log Tail 4::$L4"
+            [ -n "$L5" ] && echo "::error file=README.md,line=5,title=Log Tail 5::$L5"
+
+            FAIL_LINES=$(grep -E -i "fatal|error|fail|undefined|\*\*\*" build_native.log | tail -n 5 | tr '\r\n' ' | ' | sed 's/[^a-zA-Z0-9 ._:|/-]/_/g' | cut -c 1-250)
+            [ -n "$FAIL_LINES" ] && echo "::error file=README.md,line=6,title=Fail Lines::$FAIL_LINES"
 
             echo "### ❌ Native Build Failed (exit code $STATUS)" >> $GITHUB_STEP_SUMMARY
-            echo "Log URL: $LOG_URL" >> $GITHUB_STEP_SUMMARY
             echo '```' >> $GITHUB_STEP_SUMMARY
             tail -n 80 build_native.log >> $GITHUB_STEP_SUMMARY
             echo '```' >> $GITHUB_STEP_SUMMARY
