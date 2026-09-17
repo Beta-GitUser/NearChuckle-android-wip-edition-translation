@@ -220,9 +220,29 @@ JNI_LIBS_DIR="$ROOT_DIR/android/app/src/main/jniLibs/$ABI"
 mkdir -p "$JNI_LIBS_DIR"
 
 # Copy libc++_shared
-find "$NDK_PATH" -name "libc++_shared.so" 2>/dev/null | grep "$ABI" | while read -r lib; do
-    [ -f "$lib" ] && cp -f "$lib" "$JNI_LIBS_DIR/" && break
+case "$ABI" in
+    arm64-v8a)   LIBCXX_PATTERN="aarch64" ;;
+    armeabi-v7a) LIBCXX_PATTERN="arm-linux" ;;
+    x86_64)      LIBCXX_PATTERN="x86_64" ;;
+    x86)         LIBCXX_PATTERN="i686" ;;
+    *)           LIBCXX_PATTERN="$ABI" ;;
+esac
+
+echo "Searching libc++_shared.so for pattern: $LIBCXX_PATTERN..."
+LIBCXX_FOUND=""
+for candidate in $(find "$NDK_PATH" -name "libc++_shared.so" 2>/dev/null); do
+    if echo "$candidate" | grep -q "$LIBCXX_PATTERN"; then
+        LIBCXX_FOUND="$candidate"
+        break
+    fi
 done
+
+if [ -n "$LIBCXX_FOUND" ] && [ -f "$LIBCXX_FOUND" ]; then
+    echo "Found libc++_shared.so: $LIBCXX_FOUND"
+    cp -f "$LIBCXX_FOUND" "$JNI_LIBS_DIR/"
+else
+    echo "WARNING: libc++_shared.so not found for $LIBCXX_PATTERN in $NDK_PATH"
+fi
 
 # Copy dependency libraries (SDL3, openal, ogg, vorbis, vorbisfile)
 find "$DEPS_PREFIX/lib" -name "*.so" -exec cp -L -f {} "$JNI_LIBS_DIR/" \; 2>/dev/null || true
@@ -231,6 +251,19 @@ find "$DEPS_PREFIX/lib" -name "*.so" -exec cp -L -f {} "$JNI_LIBS_DIR/" \; 2>/de
 find "$BUILD_DIR" -name "*.so" -exec cp -L -f {} "$JNI_LIBS_DIR/" \; 2>/dev/null || true
 find "$ROOT_DIR/bin" -name "*.so" -exec cp -L -f {} "$JNI_LIBS_DIR/" \; 2>/dev/null || true
 rm -f "$JNI_LIBS_DIR"/*.so.* 2>/dev/null || true
+
+# Remove dummy stub libGL.so so it does not conflict with Android/Mesa GL loader
+rm -f "$JNI_LIBS_DIR/libGL.so"
+
+# Verify critical libraries exist
+if [ ! -f "$JNI_LIBS_DIR/libc++_shared.so" ]; then
+    echo "ERROR: libc++_shared.so is missing from $JNI_LIBS_DIR!"
+    exit 1
+fi
+if [ ! -f "$JNI_LIBS_DIR/libFarCry.so" ]; then
+    echo "ERROR: libFarCry.so is missing from $JNI_LIBS_DIR!"
+    exit 1
+fi
 
 # Strip binaries if release
 echo "=== STEP: STRIP LIBS ==="

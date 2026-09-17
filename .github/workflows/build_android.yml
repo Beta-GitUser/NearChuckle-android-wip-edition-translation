@@ -89,6 +89,21 @@ jobs:
           echo "=== Packaged native libraries (.so) ==="
           unzip -l "$APK_PATH" | grep "lib/arm64-v8a"
 
+          echo "=== Verifying critical native libraries in APK ==="
+          if ! unzip -l "$APK_PATH" | grep -q "libc++_shared.so"; then
+            echo "::error::libc++_shared.so is missing from APK!"
+            exit 1
+          fi
+          if ! unzip -l "$APK_PATH" | grep -q "libFarCry.so"; then
+            echo "::error::libFarCry.so is missing from APK!"
+            exit 1
+          fi
+          if ! unzip -l "$APK_PATH" | grep -q "libSDL3.so"; then
+            echo "::error::libSDL3.so is missing from APK!"
+            exit 1
+          fi
+          echo "All critical native libraries successfully verified in APK!"
+
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:

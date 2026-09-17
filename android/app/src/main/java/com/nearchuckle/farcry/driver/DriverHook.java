@@ -16,11 +16,14 @@ public class DriverHook {
 
     static {
         try {
+            System.loadLibrary("c++_shared");
+        } catch (Throwable ignored) {}
+        try {
             System.loadLibrary("driverloader");
             sLibraryLoaded = true;
             Log.i(TAG, "libdriverloader.so loaded successfully.");
-        } catch (UnsatisfiedLinkError e) {
-            Log.w(TAG, "libdriverloader.so not available: " + e.getMessage());
+        } catch (Throwable t) {
+            Log.w(TAG, "libdriverloader.so not available: " + t.getMessage());
             sLibraryLoaded = false;
         }
     }

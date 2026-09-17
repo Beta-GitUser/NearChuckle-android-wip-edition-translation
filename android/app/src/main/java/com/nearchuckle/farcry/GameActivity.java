@@ -33,17 +33,10 @@ public class GameActivity extends SDLActivity {
     private OscManager oscManager;
 
     @Override
-    protected String getMainSharedObject() {
-        return "libFarCry.so";
-    }
-
-    @Override
     protected String[] getLibraries() {
         return new String[]{
                 "c++_shared",
                 "SDL3",
-                "driverloader",
-                "GL",
                 "FarCry"
         };
     }
@@ -61,7 +54,7 @@ public class GameActivity extends SDLActivity {
         Log.i(TAG, "Initializing Far Cry Android Port...");
         Log.i(TAG, "Game Path: " + gamePath);
         Log.i(TAG, "Renderer Mesa Zink: " + useZink);
-        Log.i(TAG, "GPU Driver: " + selectedDriver.getName());
+        Log.i(TAG, "GPU Driver: " + (selectedDriver != null ? selectedDriver.getName() : "System Default"));
 
         // 1. Set Far Cry Working directory and Module search path
         String nativeLibDir = getApplicationInfo().nativeLibraryDir;
@@ -90,14 +83,21 @@ public class GameActivity extends SDLActivity {
             }
         }
 
-        // 3. Configure Turnip / Custom Vulkan driver via adrenotools
+        // 3. Preload libc++_shared so native dependencies are resolved
+        try {
+            System.loadLibrary("c++_shared");
+        } catch (Throwable t) {
+            Log.w(TAG, "libc++_shared pre-load: " + t.getMessage());
+        }
+
+        // 4. Configure Turnip / Custom Vulkan driver via adrenotools
         try {
             DriverHook.apply(context, selectedDriver, turbo);
         } catch (Throwable t) {
             Log.e(TAG, "Error applying GPU driver hook", t);
         }
 
-        // 4. Load native libraries
+        // 5. Load native libraries (c++_shared, SDL3, FarCry)
         super.loadLibraries();
     }
 

@@ -49,6 +49,9 @@
 	#include <dlfcn.h>
 	#include <stdlib.h>
 	#include "platform.h"
+#ifdef __ANDROID__
+	#include <android/log.h>
+#endif
 
 	// for compatibility with code written for windows
 	#define CrySharedLibraySupported true
@@ -103,13 +106,26 @@
 
 			if (pModPath && strlen(pModPath) > 0)
 			{
-				string modCandidate = string(pModPath) + "/" + file;
+				string modCandidate = string(pModPath);
+				if (modCandidate.back() != '/')
+					modCandidate += "/";
+				modCandidate += file;
 				h = ::dlopen(modCandidate.c_str(), cLoadLazy?(RTLD_LAZY | RTLD_GLOBAL):(RTLD_NOW | RTLD_GLOBAL));
 			}
 			if (!h)
 			{
 				h = ::dlopen(file.c_str(), cLoadLazy?(RTLD_LAZY | RTLD_GLOBAL):(RTLD_NOW | RTLD_GLOBAL));
 			}
+		}
+		if (!h)
+		{
+			const char* err = ::dlerror();
+#ifdef __ANDROID__
+			__android_log_print(ANDROID_LOG_ERROR, "CryLibrary", "CryLoadLibrary failed to load '%s' (tried '%s'): %s",
+				libName ? libName : "(null)", newLibName.c_str(), err ? err : "unknown error");
+#else
+			fprintf(stderr, "CryLoadLibrary failed to load '%s': %s\n", libName ? libName : "(null)", err ? err : "unknown error");
+#endif
 		}
 		return h;
 	}
