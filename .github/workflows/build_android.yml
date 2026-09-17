@@ -137,6 +137,7 @@ jobs:
 
           echo "Selected APK: $APK_PATH"
           ls -lh "$APK_PATH"
+          echo "::notice file=README.md,line=1,title=APK Generated::$(basename $APK_PATH) ($(ls -lh $APK_PATH | awk '{print $5}'))"
           echo "### 📦 Generated APK: \`$(basename $APK_PATH)\` ($(ls -lh $APK_PATH | awk '{print $5}'))" >> $GITHUB_STEP_SUMMARY
 
           echo "=== Packaged native libraries (.so) ==="
