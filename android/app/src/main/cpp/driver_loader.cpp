@@ -18,7 +18,83 @@
 #define ADRENOTOOLS_SUPPORTED 0
 #endif
 
+#include <signal.h>
+#include <ucontext.h>
+
 static void *g_customVulkanHandle = nullptr;
+static struct sigaction g_old_sigsegv;
+static struct sigaction g_old_sigabrt;
+static struct sigaction g_old_sigbus;
+static struct sigaction g_old_sigfpe;
+static struct sigaction g_old_sigill;
+
+static void nativeCrashSignalHandler(int sig, siginfo_t *info, void *ucontext) {
+    const char *sigName = "UNKNOWN";
+    if (sig == SIGSEGV) sigName = "SIGSEGV (Segmentation violation)";
+    else if (sig == SIGABRT) sigName = "SIGABRT (Abort program)";
+    else if (sig == SIGBUS)  sigName = "SIGBUS (Bus error)";
+    else if (sig == SIGFPE)  sigName = "SIGFPE (Floating point exception)";
+    else if (sig == SIGILL)  sigName = "SIGILL (Illegal instruction)";
+
+    LOGE("=================================================================");
+    LOGE("CRITICAL NATIVE CRASH DETECTED: Signal %d (%s)", sig, sigName);
+    LOGE("Fault address: %p", info ? info->si_addr : nullptr);
+    LOGE("=================================================================");
+
+    const char *paths[] = {
+        "/data/data/com.nearchuckle.farcry/files/last_crash.txt",
+        "/data/user/0/com.nearchuckle.farcry/files/last_crash.txt"
+    };
+
+    for (const char *path : paths) {
+        FILE *fp = fopen(path, "w");
+        if (fp) {
+            fprintf(fp, "================================================================\n");
+            fprintf(fp, "FAR CRY ANDROID NATIVE CRASH\n");
+            fprintf(fp, "================================================================\n");
+            fprintf(fp, "Signal:        %d (%s)\n", sig, sigName);
+            fprintf(fp, "Fault Address: %p\n", info ? info->si_addr : nullptr);
+            fprintf(fp, "PID / TID:     %d / %d\n", getpid(), gettid());
+            fprintf(fp, "================================================================\n\n");
+            fprintf(fp, "Please inspect recent logcat lines for engine crash details.\n");
+            fclose(fp);
+            break;
+        }
+    }
+
+    struct sigaction *old_sa = &g_old_sigsegv;
+    if (sig == SIGABRT) old_sa = &g_old_sigabrt;
+    else if (sig == SIGBUS) old_sa = &g_old_sigbus;
+    else if (sig == SIGFPE) old_sa = &g_old_sigfpe;
+    else if (sig == SIGILL) old_sa = &g_old_sigill;
+
+    if (old_sa->sa_sigaction) {
+        old_sa->sa_sigaction(sig, info, ucontext);
+    } else if (old_sa->sa_handler && old_sa->sa_handler != SIG_DFL && old_sa->sa_handler != SIG_IGN) {
+        old_sa->sa_handler(sig);
+    } else {
+        signal(sig, SIG_DFL);
+        raise(sig);
+    }
+}
+
+static void installNativeCrashHandlers() {
+    static bool installed = false;
+    if (installed) return;
+    installed = true;
+
+    struct sigaction sa{};
+    sa.sa_flags = SA_SIGINFO | SA_ONSTACK;
+    sa.sa_sigaction = nativeCrashSignalHandler;
+    sigemptyset(&sa.sa_mask);
+
+    sigaction(SIGSEGV, &sa, &g_old_sigsegv);
+    sigaction(SIGABRT, &sa, &g_old_sigabrt);
+    sigaction(SIGBUS, &sa, &g_old_sigbus);
+    sigaction(SIGFPE, &sa, &g_old_sigfpe);
+    sigaction(SIGILL, &sa, &g_old_sigill);
+    LOGI("Installed native crash signal handlers.");
+}
 
 extern "C" {
 
@@ -47,6 +123,8 @@ Java_com_nearchuckle_farcry_driver_DriverHook_nativeInitDriver(
         jstring customDriverDirStr,
         jstring customDriverNameStr,
         jboolean enableTurbo) {
+
+    installNativeCrashHandlers();
 
     const char *hookLibDir = hookLibDirStr ? env->GetStringUTFChars(hookLibDirStr, nullptr) : nullptr;
     const char *customDriverDir = customDriverDirStr ? env->GetStringUTFChars(customDriverDirStr, nullptr) : nullptr;

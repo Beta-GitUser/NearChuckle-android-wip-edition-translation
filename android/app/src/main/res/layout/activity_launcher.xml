@@ -357,6 +357,17 @@
                 android:textSize="14sp" />
         </LinearLayout>
 
+        <!-- VIEW LOGS & CRASH REPORTS BUTTON -->
+        <Button
+            android:id="@+id/btn_view_logs"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginBottom="8dp"
+            android:background="@drawable/btn_dark"
+            android:text="@string/btn_view_logs"
+            android:textColor="@color/accent"
+            android:textSize="13sp" />
+
         <!-- BIG LAUNCH BUTTON -->
         <Button
             android:id="@+id/btn_launch_game"

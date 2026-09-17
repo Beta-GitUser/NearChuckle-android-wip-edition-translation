@@ -40,6 +40,17 @@
     <!-- Launch Button -->
     <string name="btn_launch_game">ЗАПУСТИТЬ FAR CRY</string>
 
+    <!-- Crash Reports & Diagnostics -->
+    <string name="title_crash_report">Отчет об ошибке Far Cry</string>
+    <string name="btn_view_logs">Логи и отчеты об ошибках (Crash Reports)</string>
+    <string name="btn_copy_crash_report">Скопировать весь отчет</string>
+    <string name="btn_share_crash_report">Поделиться</string>
+    <string name="btn_clear_crash_report">Очистить отчет</string>
+    <string name="toast_report_copied">Отчет об ошибке скопирован в буфер обмена!</string>
+    <string name="toast_no_logs_to_copy">Логи пусты</string>
+    <string name="dialog_crash_detected_title">Обнаружен сбой Far Cry</string>
+    <string name="dialog_crash_detected_msg">Во время прошлого запуска произошла ошибка. Хотите открыть отчет с логами для отправки разработчику?</string>
+
     <!-- Dialogs -->
     <string name="dialog_driver_installed">Драйвер успешно установлен!</string>
     <string name="dialog_driver_install_failed">Ошибка при установке драйвера: </string>

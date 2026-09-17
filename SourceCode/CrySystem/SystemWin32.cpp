@@ -908,6 +908,19 @@ void CSystem::Error( const char *format,... )
 #else
 #ifdef __ANDROID__
 	__android_log_print(ANDROID_LOG_ERROR, "CrySystem", "%s", szBuffer);
+	FILE* fCrash = fopen("/data/data/com.nearchuckle.farcry/files/last_crash.txt", "w");
+	if (!fCrash)
+		fCrash = fopen("/data/user/0/com.nearchuckle.farcry/files/last_crash.txt", "w");
+	if (fCrash)
+	{
+		fprintf(fCrash, "================================================================\n");
+		fprintf(fCrash, "FAR CRY CRITICAL ENGINE ERROR\n");
+		fprintf(fCrash, "================================================================\n\n");
+		fprintf(fCrash, "%s\n\n", szBuffer);
+		if (szSysErrorMessage)
+			fprintf(fCrash, "Last System Error: %s\n\n", szSysErrorMessage);
+		fclose(fCrash);
+	}
 #endif
 	if (!bHandled)
 		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "CryEngine Error", szBuffer, nullptr);

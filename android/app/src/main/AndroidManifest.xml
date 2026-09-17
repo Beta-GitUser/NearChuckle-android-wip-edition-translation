@@ -54,6 +54,16 @@
             android:screenOrientation="sensorLandscape"
             android:theme="@style/AppTheme.FullScreen" />
 
+        <!-- Crash Report Activity (Runs in :crash process for maximum reliability) -->
+        <activity
+            android:name=".CrashReportActivity"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
+            android:exported="false"
+            android:label="@string/title_crash_report"
+            android:process=":crash"
+            android:screenOrientation="sensorLandscape"
+            android:theme="@style/AppTheme" />
+
     </application>
 
 </manifest>

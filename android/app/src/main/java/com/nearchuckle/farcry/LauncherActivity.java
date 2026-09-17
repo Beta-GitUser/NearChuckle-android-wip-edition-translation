@@ -78,6 +78,7 @@ public class LauncherActivity extends Activity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        CrashHandler.init(this);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_launcher);
 
@@ -88,6 +89,22 @@ public class LauncherActivity extends Activity {
         setupGpuDetection();
         setupDriverSpinner();
         setupListeners();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (CrashHandler.hasUnreadCrash(this)) {
+            new AlertDialog.Builder(this)
+                    .setTitle(R.string.dialog_crash_detected_title)
+                    .setMessage(R.string.dialog_crash_detected_msg)
+                    .setPositiveButton("Открыть отчет", (dialog, which) -> {
+                        Intent intent = new Intent(this, CrashReportActivity.class);
+                        startActivity(intent);
+                    })
+                    .setNegativeButton(R.string.cancel, null)
+                    .show();
+        }
     }
 
     private void initViews() {
@@ -290,6 +307,12 @@ public class LauncherActivity extends Activity {
         findViewById(R.id.btn_configure_controls).setOnClickListener(v -> {
             savePreferences();
             Intent intent = new Intent(this, ConfigureControlsActivity.class);
+            startActivity(intent);
+        });
+
+        // View Logs & Crash Reports button
+        findViewById(R.id.btn_view_logs).setOnClickListener(v -> {
+            Intent intent = new Intent(this, CrashReportActivity.class);
             startActivity(intent);
         });
 
