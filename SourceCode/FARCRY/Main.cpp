@@ -875,7 +875,7 @@ bool RunGame(int argc, char** argv)
 				strncpy(ip.szGameCmdLine,szLocalCmdLine,sizeof(ip.szGameCmdLine));
 			if (!g_pISystem->CreateGame( ip ))
 			{
-				//Error( "CreateGame Failed" );
+				SDL_ShowSimpleMessageBox( SDL_MESSAGEBOX_ERROR, "FarCry Error", "CreateGame Failed: CryGame.dll", nullptr);
 				return false;
 			}
 	#endif

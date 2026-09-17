@@ -46,7 +46,8 @@ public class GameActivity extends SDLActivity {
         Context context = this;
         SharedPreferences prefs = context.getSharedPreferences(LauncherActivity.PREFS_NAME, MODE_PRIVATE);
 
-        String gamePath = prefs.getString(LauncherActivity.KEY_GAME_PATH, "");
+        String defaultPath = android.os.Environment.getExternalStorageDirectory().getAbsolutePath() + "/FarCry";
+        String gamePath = prefs.getString(LauncherActivity.KEY_GAME_PATH, defaultPath);
         boolean useZink = prefs.getBoolean(LauncherActivity.KEY_USE_ZINK, true);
         boolean turbo = TurnipDriverManager.isTurboEnabled(context);
         DriverInfo selectedDriver = TurnipDriverManager.getSelectedDriver(context);

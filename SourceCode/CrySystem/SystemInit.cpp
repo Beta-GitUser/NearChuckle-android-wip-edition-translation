@@ -453,7 +453,7 @@ bool CSystem::InitRenderer(WIN_HINSTANCE hinst, WIN_HWND hwnd,const char *szCmdL
 		m_sSavedRDriver=m_rDriver->GetString();
 		m_rDriver->Set("NULL");
 	}
-#ifdef __linux
+#if defined(__linux) && !defined(__ANDROID__)
 	string lib_name(GetModulePath());
 	FILE* fp;
 	bool real_renderer = false;
@@ -489,6 +489,8 @@ bool CSystem::InitRenderer(WIN_HINSTANCE hinst, WIN_HWND hwnd,const char *szCmdL
 			fclose(fp);
 		}
 	}
+#elif defined(__ANDROID__)
+	m_rDriver->Set("OpenGL");
 #endif
 
 	if (!OpenRenderLibrary(m_rDriver->GetString()))

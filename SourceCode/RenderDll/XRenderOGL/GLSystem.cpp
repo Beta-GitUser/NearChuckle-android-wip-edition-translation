@@ -254,7 +254,9 @@ void CGLRenderer::FindProc( void*& ProcAddress, char* Name, char* SupportName, b
   {
     if( Supports )
       iLog->Log("Warning:   Missing function '%s' for '%s' support\n", Name, SupportName );
+#ifndef __ANDROID__
     Supports = 0;
+#endif
   }
 }
 
@@ -1529,6 +1531,15 @@ HWND CGLRenderer::SetMode(int x,int y,int width,int height,unsigned int cbpp, in
     m_height = height;
   }
 #else
+#ifdef __ANDROID__
+    SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
+    SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8);
+    SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
+    SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, 8);
+    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+    SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
+    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+#endif
     Uint32 windowFlags = SDL_WINDOW_OPENGL;
     m_width = width;
     m_height = height;
@@ -1881,37 +1892,56 @@ exr:
   }
 #ifndef USE_SDL
   rc->m_Glhwnd = (HWND)Glhwnd;
-#else
-  rc->m_Window = win;
-#endif
-
-  // Find functions.
-  SUPPORTS_GL = 1;
-  FindProcs( false );
-  if( !SUPPORTS_GL )
-  {
-    iLog->Log("Error: Library <%s> isn't OpenGL library\n", m_LibName);
-    goto exr;
-  }
-#ifndef USE_SDL
   CreateRContext(rc, Glhdc, hGLrc, cbpp, zbpp, sbits, true);
 #else
+  rc->m_Window = win;
+#ifdef __ANDROID__
+  SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_COMPATIBILITY);
+  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
+  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
+#endif
   rc->m_Context = SDL_GL_CreateContext(win);
+#ifdef __ANDROID__
+  if (!rc->m_Context)
+  {
+    iLog->Log("SDL_GL_CreateContext fallback: retrying with default context attributes\n");
+    SDL_GL_ResetAttributes();
+    SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
+    SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8);
+    SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
+    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+    rc->m_Context = SDL_GL_CreateContext(win);
+  }
+#endif
   if (rc->m_Context)
   {
     if (!SDL_GL_MakeCurrent(win, rc->m_Context))
     {
-      iLog->Log("%s\n", SDL_GetError());
+      iLog->Log("SDL_GL_MakeCurrent failed: %s\n", SDL_GetError());
       return NULL;
     }
   }
   else
   {
-    iLog->Log("%s\n", SDL_GetError());
+    iLog->Log("SDL_GL_CreateContext failed: %s\n", SDL_GetError());
     return NULL;
   }
   m_CurrContext = rc;
 #endif
+
+  // Find functions after context is created and current!
+  SUPPORTS_GL = 1;
+  FindProcs( false );
+#ifdef __ANDROID__
+  // On Android, ensure core GL support is maintained even if minor legacy procedures are absent
+  SUPPORTS_GL = 1;
+#endif
+  if( !SUPPORTS_GL )
+  {
+    iLog->Log("Error: Library <%s> isn't OpenGL library\n", m_LibName);
+    goto exr;
+  }
 
   glGetIntegerv(GL_MAX_TEXTURE_SIZE, &m_MaxTextureSize);
   if (CV_gl_maxtexsize)

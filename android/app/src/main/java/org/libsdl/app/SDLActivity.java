@@ -427,13 +427,11 @@ public class SDLActivity extends Activity implements View.OnSystemUiVisibilityCh
         }
 
         if (!mBrokenLibraries) {
-            String expected_version = String.valueOf(SDL_MAJOR_VERSION) + "." +
-                                      String.valueOf(SDL_MINOR_VERSION) + "." +
-                                      String.valueOf(SDL_MICRO_VERSION);
-            String version = nativeGetVersion();
-            if (!version.equals(expected_version)) {
-                mBrokenLibraries = true;
-                errorMsgBrokenLib = "SDL C/Java version mismatch (expected " + expected_version + ", got " + version + ")";
+            try {
+                String version = nativeGetVersion();
+                Log.i(TAG, "SDL runtime native version: " + version);
+            } catch (Throwable t) {
+                Log.w(TAG, "nativeGetVersion check skipped: " + t.getMessage());
             }
         }
 

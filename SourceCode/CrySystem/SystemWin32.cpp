@@ -46,6 +46,12 @@
 #ifdef __linux
 #include <unistd.h>
 #endif
+#ifdef __ANDROID__
+#include <android/log.h>
+#endif
+#ifndef WIN32
+#include <SDL3/SDL.h>
+#endif
 
 // this is the list of modules that can be loaded into the game process
 // Each array element contains 2 strings: the name of the module (case-insensitive)
@@ -899,6 +905,12 @@ void CSystem::Error( const char *format,... )
 		::MessageBox( NULL,szBuffer,"CryEngine Error",MB_OK|MB_ICONERROR|MB_SYSTEMMODAL );
 	// Dump callstack.
 	DebugCallStack::instance()->LogCallstack();
+#else
+#ifdef __ANDROID__
+	__android_log_print(ANDROID_LOG_ERROR, "CrySystem", "%s", szBuffer);
+#endif
+	if (!bHandled)
+		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "CryEngine Error", szBuffer, nullptr);
 #endif
 #ifndef PS2
   ::OutputDebugString(szBuffer);

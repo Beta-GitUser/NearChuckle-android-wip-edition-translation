@@ -432,6 +432,19 @@ public class LauncherActivity extends Activity {
         }
     }
 
+    private boolean checkGameFilesExist(String path) {
+        if (path == null || path.isEmpty()) return false;
+        File folder = new File(path);
+        if (!folder.exists() || !folder.isDirectory()) return false;
+        File fcData = new File(folder, "FCData");
+        File levels = new File(folder, "Levels");
+        if ((fcData.exists() && fcData.isDirectory()) || (levels.exists() && levels.isDirectory())) {
+            return true;
+        }
+        File[] paks = folder.listFiles((dir, name) -> name.toLowerCase().endsWith(".pak"));
+        return paks != null && paks.length > 0;
+    }
+
     private void launchGame() {
         savePreferences();
         String gamePath = editGamePath.getText().toString().trim();
@@ -445,6 +458,38 @@ public class LauncherActivity extends Activity {
             return;
         }
 
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && !Environment.isExternalStorageManager()) {
+            new AlertDialog.Builder(this)
+                    .setTitle("Доступ к файлам игры")
+                    .setMessage("Для чтения файлов игры Far Cry из памяти устройства требуется предоставить разрешение 'Доступ ко всем файлам'.")
+                    .setPositiveButton("Предоставить", (dialog, which) -> {
+                        try {
+                            Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
+                            intent.setData(Uri.parse("package:" + getPackageName()));
+                            startActivity(intent);
+                        } catch (Exception e) {
+                            startGameActivity();
+                        }
+                    })
+                    .setNegativeButton("Продолжить", (dialog, which) -> startGameActivity())
+                    .show();
+            return;
+        }
+
+        if (!checkGameFilesExist(gamePath)) {
+            new AlertDialog.Builder(this)
+                    .setTitle("Файлы игры не обнаружены")
+                    .setMessage("В папке:\n" + gamePath + "\n\nне найдены файлы игры Far Cry (папка FCData, Levels или файлы *.pak).\n\nСкопируйте файлы из оригинальной игры Far Cry (версия для ПК) в эту папку.\n\nПопробовать запустить все равно?")
+                    .setPositiveButton("Запустить", (dialog, which) -> startGameActivity())
+                    .setNegativeButton("Отмена", null)
+                    .show();
+            return;
+        }
+
+        startGameActivity();
+    }
+
+    private void startGameActivity() {
         Intent intent = new Intent(this, GameActivity.class);
         startActivity(intent);
     }
