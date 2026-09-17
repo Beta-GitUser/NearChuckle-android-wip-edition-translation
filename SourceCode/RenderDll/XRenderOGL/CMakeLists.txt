@@ -87,6 +87,7 @@ set(SRC_FILES
     "GLCGVProgram.cpp"
     "GLFont.cpp"
     "GLHelper.cpp"
+    "GLUCompat.cpp"
     "GLLog.cpp"
     "GLObjSprites.cpp"
     "GLPBuffer.cpp"

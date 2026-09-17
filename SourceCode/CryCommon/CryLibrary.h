@@ -61,6 +61,12 @@
 
 	#define HMODULE void*
 	static const char* gEnvName("MODULE_PATH");
+	static char g_szLastCryLibraryError[1024] = {0};
+
+	static inline const char* CryGetLastErrorString()
+	{
+		return g_szLastCryLibraryError[0] ? g_szLastCryLibraryError : "unknown";
+	}
 
 	static const char* GetModulePath()
 	{
@@ -84,13 +90,24 @@
 			newLibName += libName;
 		}
 		HMODULE h = NULL;
+		g_szLastCryLibraryError[0] = '\0';
+
+		int loadFlags = cLoadLazy ? (RTLD_LAZY | RTLD_GLOBAL) : (RTLD_NOW | RTLD_GLOBAL);
 		if (!newLibName.empty())
 		{
-			h = ::dlopen(newLibName.c_str(), cLoadLazy?(RTLD_LAZY | RTLD_GLOBAL):(RTLD_NOW | RTLD_GLOBAL));
+			h = ::dlopen(newLibName.c_str(), loadFlags);
 		}
 		if (!h)
 		{
-			h = ::dlopen(libName, cLoadLazy?(RTLD_LAZY | RTLD_GLOBAL):(RTLD_NOW | RTLD_GLOBAL));
+			h = ::dlopen(libName, loadFlags);
+		}
+		// Fallback: if RTLD_NOW failed, try RTLD_LAZY | RTLD_GLOBAL
+		if (!h && !cLoadLazy)
+		{
+			if (!newLibName.empty())
+				h = ::dlopen(newLibName.c_str(), RTLD_LAZY | RTLD_GLOBAL);
+			if (!h)
+				h = ::dlopen(libName, RTLD_LAZY | RTLD_GLOBAL);
 		}
 		if (!h && libName)
 		{
@@ -110,21 +127,34 @@
 				if (modCandidate.back() != '/')
 					modCandidate += "/";
 				modCandidate += file;
-				h = ::dlopen(modCandidate.c_str(), cLoadLazy?(RTLD_LAZY | RTLD_GLOBAL):(RTLD_NOW | RTLD_GLOBAL));
+				h = ::dlopen(modCandidate.c_str(), RTLD_NOW | RTLD_GLOBAL);
+				if (!h)
+					h = ::dlopen(modCandidate.c_str(), RTLD_LAZY | RTLD_GLOBAL);
 			}
 			if (!h)
 			{
-				h = ::dlopen(file.c_str(), cLoadLazy?(RTLD_LAZY | RTLD_GLOBAL):(RTLD_NOW | RTLD_GLOBAL));
+				h = ::dlopen(file.c_str(), RTLD_NOW | RTLD_GLOBAL);
+				if (!h)
+					h = ::dlopen(file.c_str(), RTLD_LAZY | RTLD_GLOBAL);
 			}
 		}
 		if (!h)
 		{
 			const char* err = ::dlerror();
+			if (err)
+			{
+				strncpy(g_szLastCryLibraryError, err, sizeof(g_szLastCryLibraryError) - 1);
+				g_szLastCryLibraryError[sizeof(g_szLastCryLibraryError) - 1] = '\0';
+			}
+			else
+			{
+				strncpy(g_szLastCryLibraryError, "unknown dlerror", sizeof(g_szLastCryLibraryError) - 1);
+			}
 #ifdef __ANDROID__
 			__android_log_print(ANDROID_LOG_ERROR, "CryLibrary", "CryLoadLibrary failed to load '%s' (tried '%s'): %s",
-				libName ? libName : "(null)", newLibName.c_str(), err ? err : "unknown error");
+				libName ? libName : "(null)", newLibName.c_str(), g_szLastCryLibraryError);
 #else
-			fprintf(stderr, "CryLoadLibrary failed to load '%s': %s\n", libName ? libName : "(null)", err ? err : "unknown error");
+			fprintf(stderr, "CryLoadLibrary failed to load '%s': %s\n", libName ? libName : "(null)", g_szLastCryLibraryError);
 #endif
 		}
 		return h;

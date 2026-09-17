@@ -790,7 +790,18 @@ bool RunGame(int argc, char** argv)
 				sysPath += "/";
 			sysPath += DLL_SYSTEM;
 		}
-		g_hSystemHandle = SDL_LoadObject(sysPath.c_str());
+		// Load libCrySystem.so with RTLD_GLOBAL so exported symbols are visible to all engine modules
+		void* hSys = dlopen(sysPath.c_str(), RTLD_NOW | RTLD_GLOBAL);
+		if (!hSys)
+			hSys = dlopen(sysPath.c_str(), RTLD_LAZY | RTLD_GLOBAL);
+		if (!hSys)
+			hSys = dlopen(DLL_SYSTEM, RTLD_NOW | RTLD_GLOBAL);
+		if (!hSys)
+			hSys = dlopen(DLL_SYSTEM, RTLD_LAZY | RTLD_GLOBAL);
+		if (!hSys)
+			g_hSystemHandle = SDL_LoadObject(sysPath.c_str());
+		else
+			g_hSystemHandle = (SDL_SharedObject*)hSys;
 		if (!g_hSystemHandle)
 			g_hSystemHandle = SDL_LoadObject(DLL_SYSTEM);
 #else
@@ -799,14 +810,20 @@ bool RunGame(int argc, char** argv)
 		if (!g_hSystemHandle)
 		{
 			string errorStr = "CrySystem.dll Loading Failed:\n";
-			errorStr += SDL_GetError();
+			const char* dlErr = dlerror();
+			if (dlErr)
+				errorStr += dlErr;
+			else
+				errorStr += SDL_GetError();
 			fprintf(stderr, "%s\n", errorStr.c_str());
 			SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "FarCry Error", errorStr.c_str(), nullptr);
 
 			return false;
 		}
 
-		PFNCREATESYSTEMINTERFACE pfnCreateSystemInterface = (PFNCREATESYSTEMINTERFACE)SDL_LoadFunction( g_hSystemHandle,"CreateSystemInterface" );
+		PFNCREATESYSTEMINTERFACE pfnCreateSystemInterface = (PFNCREATESYSTEMINTERFACE)dlsym( (void*)g_hSystemHandle,"CreateSystemInterface" );
+		if (!pfnCreateSystemInterface)
+			pfnCreateSystemInterface = (PFNCREATESYSTEMINTERFACE)SDL_LoadFunction( g_hSystemHandle,"CreateSystemInterface" );
 
 		// Initialize with instance and window handles.
 #ifndef __linux
