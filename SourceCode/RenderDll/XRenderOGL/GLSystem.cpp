@@ -1635,11 +1635,45 @@ HWND CGLRenderer::SetMode(int x,int y,int width,int height,unsigned int cbpp, in
         height,
         windowFlags);
 
-    if (fullscreen)
+#ifdef __ANDROID__
+    if (!win)
+    {
+        // On Android, SDLActivity creates the primary window; retrieve it if CreateWindow reports single-window conflict
+        int numWindows = 0;
+        SDL_Window** windows = SDL_GetWindows(&numWindows);
+        if (windows && numWindows > 0 && windows[0])
+        {
+            win = windows[0];
+            iLog->Log("Reusing existing Android SDL window %p (count=%d)\n", win, numWindows);
+        }
+    }
+    if (!win)
+    {
+        // Try fullscreen with native dimensions (0, 0)
+        win = SDL_CreateWindow(szWinTitle, 0, 0, windowFlags | SDL_WINDOW_FULLSCREEN);
+    }
+    if (win)
+    {
+        int actualW = 0, actualH = 0;
+        SDL_GetWindowSize(win, &actualW, &actualH);
+        if (actualW > 0 && actualH > 0)
+        {
+            m_width = actualW;
+            m_height = actualH;
+        }
+    }
+    else
+    {
+        iLog->Log("Error: Could not create or find SDL window: %s\n", SDL_GetError());
+    }
+#endif
+
+    if (fullscreen && win)
     {
         SDL_SetWindowFullscreen(win, true);
     }
-    SDL_SyncWindow(win);
+    if (win)
+        SDL_SyncWindow(win);
 #endif
   m_VX = m_VY = 0;
   m_VWidth = m_width;
@@ -1960,6 +1994,13 @@ exr:
     ShutDown();
     return NULL;
   }
+#ifdef USE_SDL
+  if (!win)
+  {
+    iLog->Log("Error: SetMode failed to create or get SDL window\n");
+    goto exr;
+  }
+#endif
   if (!m_RContexts.Num())
   {
     SRendContext *rc = new SRendContext;
@@ -1982,37 +2023,59 @@ exr:
 #else
   rc->m_Window = win;
 #ifdef __ANDROID__
+  // 1. Try Desktop OpenGL 2.1 Compatibility (supported by Mesa Zink)
+  SDL_GL_ResetAttributes();
+  SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
+  SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8);
+  SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
+  SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+  SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_COMPATIBILITY);
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
-#endif
   rc->m_Context = SDL_GL_CreateContext(win);
-#ifdef __ANDROID__
+
+  // 2. Try GLES 3.0
   if (!rc->m_Context)
   {
-    iLog->Log("SDL_GL_CreateContext fallback: retrying with default context attributes\n");
+    iLog->Log("SDL_GL_CreateContext fallback 1: GLES 3.0 (SDL error: %s)\n", SDL_GetError());
     SDL_GL_ResetAttributes();
     SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
     SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8);
     SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
     rc->m_Context = SDL_GL_CreateContext(win);
   }
+
+  // 3. Try GLES 2.0
   if (!rc->m_Context)
   {
-    iLog->Log("SDL_GL_CreateContext fallback 2: retrying with GLES context attributes\n");
+    iLog->Log("SDL_GL_CreateContext fallback 2: GLES 2.0 (SDL error: %s)\n", SDL_GetError());
     SDL_GL_ResetAttributes();
+    SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
+    SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8);
+    SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
+    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
-    SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
-    SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8);
-    SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
-    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
-    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
     rc->m_Context = SDL_GL_CreateContext(win);
   }
+
+  // 4. Default context attributes
+  if (!rc->m_Context)
+  {
+    iLog->Log("SDL_GL_CreateContext fallback 3: default attributes (SDL error: %s)\n", SDL_GetError());
+    SDL_GL_ResetAttributes();
+    rc->m_Context = SDL_GL_CreateContext(win);
+  }
+#else
+  rc->m_Context = SDL_GL_CreateContext(win);
 #endif
   if (rc->m_Context)
   {

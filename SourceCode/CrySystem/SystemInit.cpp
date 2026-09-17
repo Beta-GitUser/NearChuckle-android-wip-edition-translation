@@ -191,13 +191,16 @@ bool CSystem::OpenRenderLibrary(int type)
 	}
 	m_dll.hRenderer = LoadDLL(libname);
 	if (!m_dll.hRenderer)
+	{
+		CryLogAlways("Error: OpenRenderLibrary failed to load DLL '%s'", libname);
 		return false;
+	}
 
 	typedef IRenderer *(PROCREND)(int argc, char* argv[], SCryRenderInterface *sp);
   PROCREND *Proc = (PROCREND *) CryGetProcAddress(m_dll.hRenderer, "PackageRenderConstructor");
 	if (!Proc)
 	{
-		Error( "Error: Library '%s' isn't Crytek render library", libname);
+		CryLogAlways("Error: Library '%s' is missing PackageRenderConstructor entry point", libname);
 		FreeLib(m_dll.hRenderer);
 		return false;
 	}
@@ -205,11 +208,12 @@ bool CSystem::OpenRenderLibrary(int type)
 	m_pRenderer = Proc(0, NULL, &sp);
 	if (!m_pRenderer)
 	{
-		Error( "Error: Couldn't construct render driver '%s'", libname);
+		CryLogAlways("Error: PackageRenderConstructor returned NULL for '%s'", libname);
 		FreeLib(m_dll.hRenderer);
 		return false;
 	}
 	m_pRenderer->SetType(type);
+	CryLogAlways("OpenRenderLibrary: successfully created renderer '%s'", libname);
 #else
   m_pRenderer = (IRenderer*)PackageRenderConstructor(0, NULL, &sp);
   m_pRenderer->SetType(type);
@@ -493,8 +497,12 @@ bool CSystem::InitRenderer(WIN_HINSTANCE hinst, WIN_HWND hwnd,const char *szCmdL
 	m_rDriver->Set("OpenGL");
 #endif
 
+	CryLogAlways("InitRenderer: driver='%s', resolution=%dx%d", m_rDriver->GetString(), m_rWidth->GetIVal(), m_rHeight->GetIVal());
 	if (!OpenRenderLibrary(m_rDriver->GetString()))
+	{
+		CryLogAlways("Error: OpenRenderLibrary returned false for '%s'", m_rDriver->GetString());
 		return false;
+	}
 
 #ifdef WIN32
 
@@ -529,9 +537,14 @@ bool CSystem::InitRenderer(WIN_HINSTANCE hinst, WIN_HWND hwnd,const char *szCmdL
 
 	if (m_pRenderer)
 	{
+		CryLogAlways("InitRenderer: invoking m_pRenderer->Init...");
 		m_hWnd = m_pRenderer->Init(0, 0, m_rWidth->GetIVal(), m_rHeight->GetIVal(), m_rColorBits->GetIVal(), m_rDepthBits->GetIVal(), m_rStencilBits->GetIVal(), m_rFullscreen->GetIVal() ? true : false, hinst, hwnd);
 		if (m_hWnd)
+		{
+			CryLogAlways("InitRenderer: m_pRenderer->Init SUCCEEDED, handle=%p", m_hWnd);
 			return true;
+		}
+		CryLogAlways("Error: m_pRenderer->Init failed and returned NULL!");
 		return (false);
 	}
 	return true;

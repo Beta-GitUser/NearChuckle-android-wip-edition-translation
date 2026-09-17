@@ -296,6 +296,7 @@ WIN_HMODULE CSystem::LoadDLL( const char *dllName,bool bQuitIfNotFound)
 
 	if (!handle)      
 	{
+		CryLogAlways("Error: LoadDLL failed to load '%s' (dlerror: %s)", dllName, dlerror() ? dlerror() : "unknown");
 #if defined(LINUX)
 		printf ("Error loading DLL: %s, error :  %s\n", dllName, dlerror());
 		if (bQuitIfNotFound)
