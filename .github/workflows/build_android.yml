@@ -91,7 +91,7 @@ jobs:
           echo "Local properties:"
           cat android/local.properties
           echo "Building APK with Gradle..."
-          ./android/gradlew -p android :app:assembleRelease --stacktrace > build_apk.log 2>&1 || STATUS=$?
+          ./android/gradlew -p android :app:assembleRelease --info --stacktrace > build_apk.log 2>&1 || STATUS=$?
           STATUS=${STATUS:-0}
           echo "Gradle finished with status $STATUS"
           if [ $STATUS -ne 0 ]; then
@@ -101,13 +101,13 @@ jobs:
 
             G1=$(grep -E "What went wrong:|Execution failed for task" build_apk.log -A 4 | head -n 8 | tr '\r\n' ' | ' | sed 's/[^a-zA-Z0-9 ._:|/-]/_/g' | cut -c 1-250)
             G2=$(grep -E -i "error:|failed|failure" build_apk.log | grep -v "^\s*at " | tail -n 5 | tr '\r\n' ' | ' | sed 's/[^a-zA-Z0-9 ._:|/-]/_/g' | cut -c 1-250)
-            G3=$(tail -n 30 build_apk.log | grep -v "^\s*at " | head -n 8 | tr '\r\n' ' | ' | sed 's/[^a-zA-Z0-9 ._:|/-]/_/g' | cut -c 1-250)
-            G4=$(tail -n 15 build_apk.log | grep -v "^\s*at " | tail -n 8 | tr '\r\n' ' | ' | sed 's/[^a-zA-Z0-9 ._:|/-]/_/g' | cut -c 1-250)
+            G3=$(grep -E "\.java:[0-9]+: error:" build_apk.log | head -n 1 | tr '\r\n' ' | ' | sed 's/[^a-zA-Z0-9 ._:|/-]/_/g' | cut -c 1-250)
+            G4=$(grep -E "\.java:[0-9]+: error:" build_apk.log | sed -n '2p' | tr '\r\n' ' | ' | sed 's/[^a-zA-Z0-9 ._:|/-]/_/g' | cut -c 1-250)
 
             [ -n "$G1" ] && echo "::error file=README.md,line=10,title=Gradle What Went Wrong::$G1"
             [ -n "$G2" ] && echo "::error file=README.md,line=11,title=Gradle Errors::$G2"
-            [ -n "$G3" ] && echo "::error file=README.md,line=12,title=Gradle Tail 1::$G3"
-            [ -n "$G4" ] && echo "::error file=README.md,line=13,title=Gradle Tail 2::$G4"
+            [ -n "$G3" ] && echo "::error file=README.md,line=12,title=Javac Error 1::$G3"
+            [ -n "$G4" ] && echo "::error file=README.md,line=13,title=Javac Error 2::$G4"
             echo "::error file=README.md,line=14,title=Gradle Failed Exit $STATUS::See summary"
 
             echo "### ❌ Gradle Build Failed (exit code $STATUS)" >> $GITHUB_STEP_SUMMARY

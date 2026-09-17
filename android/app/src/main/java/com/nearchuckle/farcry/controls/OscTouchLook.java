@@ -140,7 +140,7 @@ public class OscTouchLook extends View {
                     int relY = Math.round(dy * sensitivity);
 
                     if (relX != 0 || relY != 0) {
-                        SDLActivity.sendRelativeMouseMotion(relX, relY);
+                        SDLActivity.onNativeMouse(0, MotionEvent.ACTION_MOVE, relX, relY, true);
                     }
 
                     lastX = curX;

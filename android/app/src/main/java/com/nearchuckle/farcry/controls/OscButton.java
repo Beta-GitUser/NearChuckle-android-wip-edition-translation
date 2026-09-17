@@ -215,7 +215,8 @@ public class OscButton extends View {
         }
 
         if (element.mouseButton != 0) {
-            SDLActivity.sendMouseButton(1, element.mouseButton);
+            int buttonState = (element.mouseButton == 1) ? MotionEvent.BUTTON_PRIMARY : MotionEvent.BUTTON_SECONDARY;
+            SDLActivity.onNativeMouse(buttonState, MotionEvent.ACTION_DOWN, 0, 0, false);
         } else if (element.sdlKeyCode != 0) {
             SDLActivity.onNativeKeyDown(element.sdlKeyCode);
         }
@@ -227,7 +228,7 @@ public class OscButton extends View {
         }
 
         if (element.mouseButton != 0) {
-            SDLActivity.sendMouseButton(0, element.mouseButton);
+            SDLActivity.onNativeMouse(0, MotionEvent.ACTION_UP, 0, 0, false);
         } else if (element.sdlKeyCode != 0) {
             SDLActivity.onNativeKeyUp(element.sdlKeyCode);
         }
