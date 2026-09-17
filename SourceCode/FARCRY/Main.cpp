@@ -887,11 +887,19 @@ bool RunGame(int argc, char** argv)
 		g_bSystemRelaunch = false;
 
 		// set the controls to exclusive mode
-		g_pISystem->GetIInput()->ClearKeyState();
-		g_pISystem->GetIInput()->SetMouseExclusive(true);
-		g_pISystem->GetIInput()->SetKeyboardExclusive(true);
+		if (g_pISystem && g_pISystem->GetIInput())
+		{
+			g_pISystem->GetIInput()->ClearKeyState();
+			g_pISystem->GetIInput()->SetMouseExclusive(true);
+			g_pISystem->GetIInput()->SetKeyboardExclusive(true);
+		}
 
-		IGame *pGame = g_pISystem->GetIGame();
+		IGame *pGame = g_pISystem ? g_pISystem->GetIGame() : nullptr;
+		if (!pGame)
+		{
+			SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "FarCry Error", "GetIGame returned NULL", nullptr);
+			return false;
+		}
 
 //////////////////////////////////////////////////////////////////////////
 #ifdef GERMAN_GORE_CHECK

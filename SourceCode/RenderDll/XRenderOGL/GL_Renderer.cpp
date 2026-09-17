@@ -1149,7 +1149,8 @@ void CGLRenderer::Update()
 #ifndef USE_SDL
     SwapBuffers(m_CurrContext->m_hDC);
 #else
-    SDL_GL_SwapWindow(m_CurrContext->m_Window);
+    if (m_CurrContext && m_CurrContext->m_Window)
+      SDL_GL_SwapWindow(m_CurrContext->m_Window);
 #endif
   }
 

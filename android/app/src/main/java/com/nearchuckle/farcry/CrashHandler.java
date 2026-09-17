@@ -98,7 +98,7 @@ public class CrashHandler implements Thread.UncaughtExceptionHandler {
         return buildCrashReport(context, crashReason, sw.toString());
     }
 
-    private static String buildCrashReport(Context context, String crashReason, String details) {
+    public static String buildCrashReport(Context context, String crashReason, String details) {
         StringBuilder sb = new StringBuilder();
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US);
         String timestamp = sdf.format(new Date());

@@ -57,6 +57,11 @@ public class CrashReportActivity extends Activity {
             // Generate live diagnostics if no crash report was recorded
             report = CrashHandler.generateDiagnosticsReport(this);
             tvSummary.setText("Диагностические данные и логи работы движка Far Cry");
+        } else if (!report.contains("CRYENGINE LOG")) {
+            // Signal handler generated raw crash dump: enrich with system specs, engine log tail, and logcat
+            report = CrashHandler.buildCrashReport(this, "FAR CRY ANDROID NATIVE CRASH", report);
+            CrashHandler.saveCrashReport(this, report);
+            tvSummary.setText("Нажмите 'Скопировать весь отчет', чтобы отправить его для анализа");
         } else {
             tvSummary.setText("Нажмите 'Скопировать весь отчет', чтобы отправить его для анализа");
         }

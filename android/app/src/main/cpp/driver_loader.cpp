@@ -36,9 +36,40 @@ static void nativeCrashSignalHandler(int sig, siginfo_t *info, void *ucontext) {
     else if (sig == SIGFPE)  sigName = "SIGFPE (Floating point exception)";
     else if (sig == SIGILL)  sigName = "SIGILL (Illegal instruction)";
 
+    uintptr_t pc = 0;
+    uintptr_t lr = 0;
+    uintptr_t sp = 0;
+#if defined(__aarch64__)
+    auto *uc = (ucontext_t *)ucontext;
+    if (uc) {
+        pc = (uintptr_t)uc->uc_mcontext.pc;
+        lr = (uintptr_t)uc->uc_mcontext.regs[30];
+        sp = (uintptr_t)uc->uc_mcontext.sp;
+    }
+#endif
+
+    Dl_info pc_info{}, lr_info{};
+    if (pc) dladdr((void*)pc, &pc_info);
+    if (lr) dladdr((void*)lr, &lr_info);
+
     LOGE("=================================================================");
     LOGE("CRITICAL NATIVE CRASH DETECTED: Signal %d (%s)", sig, sigName);
     LOGE("Fault address: %p", info ? info->si_addr : nullptr);
+    LOGE("PID / TID:     %d / %d", getpid(), gettid());
+    if (pc) {
+        LOGE("PC (Instruction): 0x%lx (%s + 0x%lx, symbol: %s)",
+             (unsigned long)pc,
+             pc_info.dli_fname ? pc_info.dli_fname : "(unknown)",
+             pc_info.dli_fbase ? (unsigned long)(pc - (uintptr_t)pc_info.dli_fbase) : 0UL,
+             pc_info.dli_sname ? pc_info.dli_sname : "(no symbol)");
+    }
+    if (lr) {
+        LOGE("LR (Return):      0x%lx (%s + 0x%lx, symbol: %s)",
+             (unsigned long)lr,
+             lr_info.dli_fname ? lr_info.dli_fname : "(unknown)",
+             lr_info.dli_fbase ? (unsigned long)(lr - (uintptr_t)lr_info.dli_fbase) : 0UL,
+             lr_info.dli_sname ? lr_info.dli_sname : "(no symbol)");
+    }
     LOGE("=================================================================");
 
     const char *paths[] = {
@@ -55,8 +86,24 @@ static void nativeCrashSignalHandler(int sig, siginfo_t *info, void *ucontext) {
             fprintf(fp, "Signal:        %d (%s)\n", sig, sigName);
             fprintf(fp, "Fault Address: %p\n", info ? info->si_addr : nullptr);
             fprintf(fp, "PID / TID:     %d / %d\n", getpid(), gettid());
+            if (pc) {
+                fprintf(fp, "PC (IP):       0x%lx (%s + 0x%lx, %s)\n",
+                        (unsigned long)pc,
+                        pc_info.dli_fname ? pc_info.dli_fname : "(unknown)",
+                        pc_info.dli_fbase ? (unsigned long)(pc - (uintptr_t)pc_info.dli_fbase) : 0UL,
+                        pc_info.dli_sname ? pc_info.dli_sname : "(no symbol)");
+            }
+            if (lr) {
+                fprintf(fp, "LR (Return):   0x%lx (%s + 0x%lx, %s)\n",
+                        (unsigned long)lr,
+                        lr_info.dli_fname ? lr_info.dli_fname : "(unknown)",
+                        lr_info.dli_fbase ? (unsigned long)(lr - (uintptr_t)lr_info.dli_fbase) : 0UL,
+                        lr_info.dli_sname ? lr_info.dli_sname : "(no symbol)");
+            }
+            if (sp) {
+                fprintf(fp, "SP (Stack):    0x%lx\n", (unsigned long)sp);
+            }
             fprintf(fp, "================================================================\n\n");
-            fprintf(fp, "Please inspect recent logcat lines for engine crash details.\n");
             fclose(fp);
             break;
         }

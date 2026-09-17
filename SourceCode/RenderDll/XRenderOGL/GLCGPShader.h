@@ -525,7 +525,7 @@ char *mfLoadCG(char *prog_text)
       if(errpos != -1)
       {
         const GLubyte *pError = glGetString(GL_PROGRAM_ERROR_STRING_ARB);
-        iLog->Log("Warning: Fragment Program '%s' error (%s):\n", m_Name.c_str(), pError);
+        iLog->Log("Warning: Fragment Program '%s' error (%s):\n", m_Name.c_str(), pError ? (const char*)pError : "unknown");
         int bgn = errpos - 10;
         bgn < 0 ? 0 : bgn;
         const char * c = (const char *)(prog_text + bgn);

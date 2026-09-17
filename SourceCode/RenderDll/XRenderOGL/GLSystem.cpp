@@ -22,6 +22,9 @@ static char THIS_FILE[] = __FILE__;
 #else
 #endif
 #endif
+#ifdef __linux
+#include <dlfcn.h>
+#endif
 
 #ifdef USE_3DC
 #include "../Common/3Dc/CompressorLib.h"
@@ -193,6 +196,7 @@ bool CGLRenderer::LoadLibrary()
 
   return true;
 #else
+  strcpy(m_LibName, "OpenGL/EGL (SDL)");
   return true;
 #endif
 }
@@ -212,11 +216,51 @@ static PFNWGLGETEXTENSIONSSTRINGEXTPROC wglGetExtensionsStringEXT;
   assert(funcname);
 #endif
 
+#ifdef __ANDROID__
+static void DummyGLVoid(void) {}
+static GLint DummyGLInt(void) { return 0; }
+static GLboolean DummyGLBool(void) { return GL_FALSE; }
+static const GLubyte* DummyGLString(GLenum) { return (const GLubyte*)""; }
+#endif
+
 bool CGLRenderer::FindExt( const char* Name )
 {
+  if (!Name || !Name[0])
+    return false;
+
   char *str = (char*)glGetString(GL_EXTENSIONS);
-  if (strstr(str, Name))
+  if (str && strstr(str, Name))
     return true;
+
+#ifdef __linux
+  // In OpenGL 3.0+ / Core Profile (e.g. Mesa Zink), glGetString(GL_EXTENSIONS) is deprecated and returns NULL.
+  // Query via glGetStringi if available.
+#ifndef GL_NUM_EXTENSIONS
+#define GL_NUM_EXTENSIONS 0x821D
+#endif
+  typedef const GLubyte * (*PFNGLGETSTRINGIPROC) (GLenum name, GLuint index);
+  static PFNGLGETSTRINGIPROC pfnGetStringi = nullptr;
+  static bool triedGetStringi = false;
+  if (!triedGetStringi)
+  {
+    triedGetStringi = true;
+    pfnGetStringi = (PFNGLGETSTRINGIPROC)SDL_GL_GetProcAddress("glGetStringi");
+    if (!pfnGetStringi)
+      pfnGetStringi = (PFNGLGETSTRINGIPROC)::dlsym(RTLD_DEFAULT, "glGetStringi");
+  }
+  if (!str && pfnGetStringi && cryglGetIntegerv)
+  {
+    GLint numExtensions = 0;
+    cryglGetIntegerv(GL_NUM_EXTENSIONS, &numExtensions);
+    for (GLint i = 0; i < numExtensions; ++i)
+    {
+      const char* ext = (const char*)pfnGetStringi(GL_EXTENSIONS, i);
+      if (ext && strcmp(ext, Name) == 0)
+        return true;
+    }
+  }
+#endif
+
 #ifndef __linux
   GET_GL_PROC(PFNWGLGETEXTENSIONSSTRINGARBPROC,wglGetExtensionsStringARB);
   if(wglGetExtensionsStringARB)
@@ -239,7 +283,35 @@ void CGLRenderer::FindProc( void*& ProcAddress, char* Name, char* SupportName, b
   if( !ProcAddress )
     ProcAddress = GetProcAddress( (HINSTANCE)m_hLibHandleGDI, Name );
 #else
-  ProcAddress = (void *)(uintptr_t)SDL_GL_GetProcAddress( Name );
+  if (!ProcAddress)
+    ProcAddress = (void *)(uintptr_t)SDL_GL_GetProcAddress( Name );
+#ifdef __linux
+  if (!ProcAddress)
+    ProcAddress = ::dlsym(RTLD_DEFAULT, Name);
+  if (!ProcAddress)
+  {
+    static void* s_glHandles[5] = { nullptr, nullptr, nullptr, nullptr, nullptr };
+    static bool s_handlesInited = false;
+    if (!s_handlesInited)
+    {
+      s_handlesInited = true;
+      s_glHandles[0] = dlopen("libGL.so", RTLD_LAZY | RTLD_GLOBAL);
+      s_glHandles[1] = dlopen("libGL.so.1", RTLD_LAZY | RTLD_GLOBAL);
+      s_glHandles[2] = dlopen("libGLESv3.so", RTLD_LAZY | RTLD_GLOBAL);
+      s_glHandles[3] = dlopen("libGLESv2.so", RTLD_LAZY | RTLD_GLOBAL);
+      s_glHandles[4] = dlopen("libGLESv1_CM.so", RTLD_LAZY | RTLD_GLOBAL);
+    }
+    for (int i = 0; i < 5; ++i)
+    {
+      if (s_glHandles[i])
+      {
+        ProcAddress = ::dlsym(s_glHandles[i], Name);
+        if (ProcAddress)
+          break;
+      }
+    }
+  }
+#endif
 #endif
   if( !ProcAddress && Supports && AllowExt )
   {
@@ -247,6 +319,10 @@ void CGLRenderer::FindProc( void*& ProcAddress, char* Name, char* SupportName, b
     ProcAddress = pwglGetProcAddress( Name ); 
 #else
     ProcAddress = (void *)(uintptr_t)SDL_GL_GetProcAddress( Name );
+#ifdef __linux
+    if (!ProcAddress)
+      ProcAddress = ::dlsym(RTLD_DEFAULT, Name);
+#endif
 #endif
   }
     
@@ -256,6 +332,16 @@ void CGLRenderer::FindProc( void*& ProcAddress, char* Name, char* SupportName, b
       iLog->Log("Warning:   Missing function '%s' for '%s' support\n", Name, SupportName );
 #ifndef __ANDROID__
     Supports = 0;
+#else
+    // On Android, provide a safe dummy stub so invocation doesn't jump to 0x0
+    if (strcmp(Name, "glGetString") == 0)
+      ProcAddress = (void*)DummyGLString;
+    else if (strcmp(Name, "glGetError") == 0)
+      ProcAddress = (void*)DummyGLInt;
+    else if (strcmp(Name, "glIsEnabled") == 0 || strcmp(Name, "glIsTexture") == 0)
+      ProcAddress = (void*)DummyGLBool;
+    else if (strcmp(SupportName, "_GL") == 0)
+      ProcAddress = (void*)DummyGLVoid;
 #endif
   }
 }
@@ -1913,6 +1999,20 @@ exr:
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
     rc->m_Context = SDL_GL_CreateContext(win);
   }
+  if (!rc->m_Context)
+  {
+    iLog->Log("SDL_GL_CreateContext fallback 2: retrying with GLES context attributes\n");
+    SDL_GL_ResetAttributes();
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+    SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
+    SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8);
+    SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
+    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+    rc->m_Context = SDL_GL_CreateContext(win);
+  }
 #endif
   if (rc->m_Context)
   {
@@ -1943,7 +2043,14 @@ exr:
     goto exr;
   }
 
-  glGetIntegerv(GL_MAX_TEXTURE_SIZE, &m_MaxTextureSize);
+  if (cryglGetIntegerv)
+  {
+    glGetIntegerv(GL_MAX_TEXTURE_SIZE, &m_MaxTextureSize);
+  }
+  else
+  {
+    m_MaxTextureSize = 2048;
+  }
   if (CV_gl_maxtexsize)
   {
     if (CV_gl_maxtexsize < 128)
@@ -1957,21 +2064,29 @@ exr:
   iLog->Log("****** OpenGL Driver Stats ******\n");
   iLog->Log("Driver: %s\n", m_LibName);
   m_VendorName = glGetString(GL_VENDOR);
-  iLog->Log("GL_VENDOR: %s\n", m_VendorName);
+  iLog->Log("GL_VENDOR: %s\n", m_VendorName ? (const char*)m_VendorName : "Unknown");
   m_RendererName = glGetString(GL_RENDERER);
-  iLog->Log("GL_RENDERER: %s\n", m_RendererName);
+  iLog->Log("GL_RENDERER: %s\n", m_RendererName ? (const char*)m_RendererName : "Unknown");
   m_VersionName = glGetString(GL_VERSION);
-  iLog->Log("GL_VERSION: %s\n", m_VersionName);
+  iLog->Log("GL_VERSION: %s\n", m_VersionName ? (const char*)m_VersionName : "Unknown");
   m_ExtensionsName = glGetString(GL_EXTENSIONS);
   iLog->LogToFile("GL_EXTENSIONS:\n");
   char ext[16384];
   char *token;
-  strcpy(ext, (char *)m_ExtensionsName);
-  token = strtok(ext, " ");
-  while (token)
+  if (m_ExtensionsName)
   {
-    iLog->LogToFile("  %s\n", token);
-    token = strtok(NULL, " ");
+    strncpy(ext, (char *)m_ExtensionsName, sizeof(ext) - 1);
+    ext[sizeof(ext) - 1] = '\0';
+    token = strtok(ext, " ");
+    while (token)
+    {
+      iLog->LogToFile("  %s\n", token);
+      token = strtok(NULL, " ");
+    }
+  }
+  else
+  {
+    iLog->LogToFile("  (none or modern GL core profile)\n");
   }
   iLog->LogToFile("\n");
 #ifndef USE_SDL
@@ -2570,7 +2685,11 @@ bool CGLRenderer::DeleteContext(WIN_HWND hWnd)
   delete rc;
   m_RContexts.Remove(i, 1);
 #else
-  SDL_GL_DestroyContext(m_RContexts[0]->m_Context);
+  if (m_RContexts.Num() && m_RContexts[0] && m_RContexts[0]->m_Context)
+  {
+    SDL_GL_DestroyContext(m_RContexts[0]->m_Context);
+    m_RContexts[0]->m_Context = NULL;
+  }
 #endif
   return true;
 }
@@ -2659,9 +2778,10 @@ void CGLRenderer::ShutDown(bool bReInit)
 
   RestoreDeviceGamma();
 
-  glFinish();
+  if (cryglFinish)
+    glFinish();
 #ifndef USE_SDL
-  HWND hWnd = m_RContexts[0]->m_Glhwnd;
+  HWND hWnd = m_RContexts.Num() ? m_RContexts[0]->m_Glhwnd : NULL;
 
   for (i=0; i<m_RContexts.Num(); i++)
   {
@@ -2672,8 +2792,13 @@ void CGLRenderer::ShutDown(bool bReInit)
     DestroyWindow(hWnd);
   }
 #else
-  SDL_GL_DestroyContext(m_RContexts[0]->m_Context);
-  SDL_DestroyWindow(m_RContexts[0]->m_Window);
+  if (m_RContexts.Num() && m_RContexts[0])
+  {
+    if (m_RContexts[0]->m_Context)
+      SDL_GL_DestroyContext(m_RContexts[0]->m_Context);
+    if (m_RContexts[0]->m_Window)
+      SDL_DestroyWindow(m_RContexts[0]->m_Window);
+  }
 #endif
   //ChangeDisplay(m_deskwidth,m_deskheight,m_deskbpp);
   ChangeDisplay(0,0,0);
