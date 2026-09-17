@@ -235,19 +235,31 @@ public class CrashHandler implements Thread.UncaughtExceptionHandler {
 
     private static String readLogcatTail(int maxLines) {
         List<String> lines = new ArrayList<>();
-        try {
-            java.lang.Process process = Runtime.getRuntime().exec(new String[]{
-                    "logcat", "-d", "-v", "time", "-t", String.valueOf(maxLines)
-            });
-            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-            String line;
-            while ((line = reader.readLine()) != null) {
-                // Filter lines relevant to our process, SDL, graphics, or crashes
-                lines.add(line);
+        String[] cmdOptions = new String[]{
+                "/system/bin/logcat -d -t " + maxLines,
+                "logcat -d -t " + maxLines,
+                "/system/bin/logcat -d -v time -t " + maxLines
+        };
+
+        for (String cmd : cmdOptions) {
+            try {
+                java.lang.Process process = Runtime.getRuntime().exec(cmd.split("\\s+"));
+                try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        lines.add(line);
+                    }
+                }
+                process.waitFor();
+                if (!lines.isEmpty()) {
+                    break;
+                }
+            } catch (Throwable ignored) {
             }
-            process.waitFor();
-        } catch (Exception e) {
-            return "(Failed to retrieve logcat: " + e.getMessage() + ")";
+        }
+
+        if (lines.isEmpty()) {
+            return "(Logcat access is restricted by Android system security policy on this device)";
         }
 
         StringBuilder sb = new StringBuilder();

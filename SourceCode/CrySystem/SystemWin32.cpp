@@ -265,7 +265,13 @@ const char *CSystem::GetUserName()
 #ifndef __linux
 	::GetUserName(szNameBuffer, &dwSize);
 #else
-	strncpy(szNameBuffer, getenv("USER"), dwSize);
+	const char* user = getenv("USER");
+	if (!user || !user[0])
+		user = getenv("LOGNAME");
+	if (!user || !user[0])
+		user = "FarCryPlayer";
+	strncpy(szNameBuffer, user, dwSize - 1);
+	szNameBuffer[dwSize - 1] = '\0';
 #endif
 	return szNameBuffer;
 }

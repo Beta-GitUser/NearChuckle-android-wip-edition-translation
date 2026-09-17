@@ -62,8 +62,12 @@ public class GameActivity extends SDLActivity {
         try {
             if (!gamePath.isEmpty()) {
                 Os.setenv("FARCRY_DATA_DIR", gamePath, true);
+                Os.setenv("HOME", gamePath, true);
             }
             Os.setenv("MODULE_PATH", nativeLibDir + "/", true);
+            Os.setenv("USER", "FarCryPlayer", true);
+            Os.setenv("LOGNAME", "FarCryPlayer", true);
+            Os.setenv("TMPDIR", context.getCacheDir().getAbsolutePath(), true);
         } catch (ErrnoException e) {
             Log.e(TAG, "Failed setting path environment variables", e);
         }
