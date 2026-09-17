@@ -85,19 +85,27 @@ jobs:
       - name: Build APK with Gradle
         shell: bash
         run: |
-          set -e
-          set -o pipefail
           chmod +x android/gradlew
-          ./android/gradlew -p android :app:assembleRelease --stacktrace 2>&1 | tee build_apk.log || {
-            STATUS=$?
-            echo "::error::Gradle build failed with exit code $STATUS"
-            echo "### ❌ Gradle Build Errors" >> $GITHUB_STEP_SUMMARY
+          echo "Building APK with Gradle..."
+          ./android/gradlew -p android :app:assembleRelease --stacktrace > build_apk.log 2>&1 || STATUS=$?
+          STATUS=${STATUS:-0}
+          echo "Gradle finished with status $STATUS"
+          if [ $STATUS -ne 0 ]; then
+            echo "========== GRADLE BUILD FAILED (exit code $STATUS) =========="
+            tail -n 120 build_apk.log
+            echo "============================================================="
+
+            G_ERR=$(grep -E -i "error|exception|failure|fail" build_apk.log | tail -n 5 | tr '\r\n' ' | ' | sed 's/[^a-zA-Z0-9 ._:|/-]/_/g' | cut -c 1-250)
+            [ -n "$G_ERR" ] && echo "::error file=README.md,line=10,title=Gradle Error::$G_ERR"
+            echo "::error file=README.md,line=11,title=Gradle Failed Exit $STATUS::See summary"
+
+            echo "### ❌ Gradle Build Failed (exit code $STATUS)" >> $GITHUB_STEP_SUMMARY
             echo '```' >> $GITHUB_STEP_SUMMARY
             tail -n 80 build_apk.log >> $GITHUB_STEP_SUMMARY
             echo '```' >> $GITHUB_STEP_SUMMARY
-            tail -n 80 build_apk.log
             exit $STATUS
-          }
+          fi
+          echo "### ✅ Gradle Build Succeeded" >> $GITHUB_STEP_SUMMARY
 
       - name: Inspect Built APK
         shell: bash

@@ -1,6 +1,5 @@
 #!/bin/bash
 set -e
-set -o pipefail
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 ROOT_DIR="$( cd "$DIR/.." && pwd )"
@@ -221,21 +220,21 @@ JNI_LIBS_DIR="$ROOT_DIR/android/app/src/main/jniLibs/$ABI"
 mkdir -p "$JNI_LIBS_DIR"
 
 # Copy libc++_shared
-find "$NDK_PATH" -name "libc++_shared.so" | grep "$ABI" | head -n 1 | while read -r lib; do
-    cp "$lib" "$JNI_LIBS_DIR/"
+find "$NDK_PATH" -name "libc++_shared.so" 2>/dev/null | grep "$ABI" | while read -r lib; do
+    [ -f "$lib" ] && cp -f "$lib" "$JNI_LIBS_DIR/" && break
 done
 
 # Copy dependency libraries (SDL3, openal, ogg, vorbis, vorbisfile)
-find "$DEPS_PREFIX/lib" -name "*.so" -exec cp -L {} "$JNI_LIBS_DIR/" \;
+find "$DEPS_PREFIX/lib" -name "*.so" -exec cp -L -f {} "$JNI_LIBS_DIR/" \; 2>/dev/null || true
 
 # Copy built NearChuckle and CryEngine libraries
-find "$BUILD_DIR" -name "*.so" -exec cp -L {} "$JNI_LIBS_DIR/" \; 2>/dev/null || true
-find "$ROOT_DIR/bin" -name "*.so" -exec cp -L {} "$JNI_LIBS_DIR/" \; 2>/dev/null || true
+find "$BUILD_DIR" -name "*.so" -exec cp -L -f {} "$JNI_LIBS_DIR/" \; 2>/dev/null || true
+find "$ROOT_DIR/bin" -name "*.so" -exec cp -L -f {} "$JNI_LIBS_DIR/" \; 2>/dev/null || true
 rm -f "$JNI_LIBS_DIR"/*.so.* 2>/dev/null || true
 
 # Strip binaries if release
 echo "=== STEP: STRIP LIBS ==="
-STRIP_TOOL=$(find "$NDK_PATH" -name "llvm-strip" | head -n 1)
+STRIP_TOOL=$(find "$NDK_PATH" -name "llvm-strip" 2>/dev/null | head -n 1)
 if [ "$BUILD_TYPE" = "Release" ] && [ -n "$STRIP_TOOL" ] && [ -x "$STRIP_TOOL" ]; then
     echo "Stripping shared libraries..."
     for sofile in "$JNI_LIBS_DIR"/*.so; do
