@@ -52,7 +52,7 @@ jobs:
         run: |
           chmod +x buildscripts/build_android.sh
           echo "Starting native build..."
-          ./buildscripts/build_android.sh --arch arm64 --release --ndk "${{ steps.setup-ndk.outputs.ndk-path }}"
+          ./buildscripts/build_android.sh --arch arm64 --release --ndk "${{ steps.setup-ndk.outputs.ndk-path }}" 2>&1 | tee build_native.log
           echo "### ✅ Native Build Succeeded" >> $GITHUB_STEP_SUMMARY
 
       - name: Build APK with Gradle
@@ -62,8 +62,17 @@ jobs:
           echo "sdk.dir=$ANDROID_HOME" > android/local.properties
           echo "ndk.dir=${{ steps.setup-ndk.outputs.ndk-path }}" >> android/local.properties
           echo "Building APK with Gradle..."
-          ./android/gradlew -p android :app:assembleRelease --stacktrace
+          ./android/gradlew -p android :app:assembleRelease --stacktrace 2>&1 | tee build_apk.log
           echo "### ✅ Gradle Build Succeeded" >> $GITHUB_STEP_SUMMARY
+
+      - name: Print Gradle error log on failure
+        if: failure()
+        shell: bash
+        run: |
+          if [ -f build_apk.log ]; then
+            echo "====================== GRADLE ERROR LOG TAIL ======================"
+            tail -n 100 build_apk.log
+          fi
 
       - name: Inspect Built APK
         shell: bash

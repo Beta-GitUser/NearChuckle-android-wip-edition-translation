@@ -58,6 +58,10 @@ android {
     packaging {
         jniLibs {
             useLegacyPackaging = true
+            pickFirsts += ['**/*.so']
+        }
+        resources {
+            pickFirsts += ['**/*.so']
         }
     }
 }
