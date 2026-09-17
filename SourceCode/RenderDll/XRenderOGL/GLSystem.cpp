@@ -228,6 +228,10 @@ bool CGLRenderer::FindExt( const char* Name )
   if (!Name || !Name[0])
     return false;
 
+  // "GL" or "_GL" represents standard OpenGL core functions, always supported
+  if (strcmp(Name, "GL") == 0 || strcmp(Name, "_GL") == 0)
+    return true;
+
   char *str = (char*)glGetString(GL_EXTENSIONS);
   if (str && strstr(str, Name))
     return true;
@@ -258,6 +262,22 @@ bool CGLRenderer::FindExt( const char* Name )
       if (ext && strcmp(ext, Name) == 0)
         return true;
     }
+  }
+#endif
+
+#ifdef __ANDROID__
+  // Fallback for Android/Zink if driver doesn't explicitly expose extension strings
+  if (strcmp(Name, "GL_ARB_vertex_program") == 0 ||
+      strcmp(Name, "GL_ARB_fragment_program") == 0 ||
+      strcmp(Name, "GL_ARB_multitexture") == 0 ||
+      strcmp(Name, "GL_ARB_texture_compression") == 0 ||
+      strcmp(Name, "GL_ARB_vertex_buffer_object") == 0 ||
+      strcmp(Name, "GL_ARB_texture_cube_map") == 0 ||
+      strcmp(Name, "GL_EXT_texture_filter_anisotropic") == 0 ||
+      strcmp(Name, "GL_EXT_texture_env_combine") == 0 ||
+      strcmp(Name, "GL_ARB_texture_env_combine") == 0)
+  {
+    return true;
   }
 #endif
 
@@ -333,14 +353,14 @@ void CGLRenderer::FindProc( void*& ProcAddress, char* Name, char* SupportName, b
 #ifndef __ANDROID__
     Supports = 0;
 #else
-    // On Android, provide a safe dummy stub so invocation doesn't jump to 0x0
+    // On Android, provide safe dummy stubs so invocations never jump to 0x0
     if (strcmp(Name, "glGetString") == 0)
       ProcAddress = (void*)DummyGLString;
     else if (strcmp(Name, "glGetError") == 0)
       ProcAddress = (void*)DummyGLInt;
     else if (strcmp(Name, "glIsEnabled") == 0 || strcmp(Name, "glIsTexture") == 0)
       ProcAddress = (void*)DummyGLBool;
-    else if (strcmp(SupportName, "_GL") == 0)
+    else
       ProcAddress = (void*)DummyGLVoid;
 #endif
   }
@@ -361,7 +381,11 @@ bool CGLRenderer::CheckOGLExtensions(void)
 
   iLog->Log("\n...Check OpenGL extensions\n");
 
+  SUPPORTS_GL = 1;
   FindProcs( true );
+#ifdef __ANDROID__
+  SUPPORTS_GL = 1;
+#endif
 
 /////////////////////////////////////////////////////////////////////////////////////
 
@@ -1225,6 +1249,36 @@ bool CGLRenderer::CheckOGLExtensions(void)
   m_MaxActiveTexturesARB_VP = crymin(m_MaxActiveTexturesARB_VP, MAX_TMU);
   m_MaxActiveTexturesARBFixed = crymin(m_MaxActiveTexturesARBFixed, MAX_TMU);
 
+#ifdef __ANDROID__
+  // Force enable critical features for Android / Mesa Zink
+  SUPPORTS_GL = 1;
+  SUPPORTS_GL_ARB_multitexture = 1;
+  SUPPORTS_GL_ARB_vertex_program = 1;
+  SUPPORTS_GL_ARB_fragment_program = 1;
+  SUPPORTS_GL_ARB_vertex_buffer_object = 1;
+  SUPPORTS_GL_ARB_texture_compression = 1;
+  SUPPORTS_GL_ARB_texture_cube_map = 1;
+  SUPPORTS_GL_EXT_texture_filter_anisotropic = 1;
+
+  m_Features |= RFT_HW_VS | RFT_HW_PS20 | RFT_HW_TS | RFT_MULTITEXTURE | RFT_COMPRESSTEXTURE | RFT_ALLOWANISOTROPIC | RFT_FOGVP | RFT_HW_ENVBUMPPROJECTED | RFT_BUMP;
+  if ((m_Features & RFT_HW_MASK) == 0)
+  {
+    m_Features |= RFT_HW_GFFX;
+  }
+  if (m_MaxActiveTexturesARB_VP < 8)
+    m_MaxActiveTexturesARB_VP = 8;
+  if (m_MaxActiveTexturesARBFixed < 4)
+    m_MaxActiveTexturesARBFixed = 4;
+  m_numtmus = m_MaxActiveTexturesARB_VP;
+
+  iLog->Log("Android GL Features forced: VS=%d, PS20=%d, TS=%d, GPU=0x%x, TMUs=%d\n",
+    (m_Features & RFT_HW_VS) ? 1 : 0,
+    (m_Features & RFT_HW_PS20) ? 1 : 0,
+    (m_Features & RFT_HW_TS) ? 1 : 0,
+    m_Features & RFT_HW_MASK,
+    m_numtmus);
+#endif
+
   return true;
 }
 
@@ -2035,6 +2089,37 @@ exr:
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
   rc->m_Context = SDL_GL_CreateContext(win);
 
+  // 1b. Try Desktop OpenGL 2.1 without profile mask (EGL rejects profile mask for versions < 3.2)
+  if (!rc->m_Context)
+  {
+    iLog->Log("SDL_GL_CreateContext retry: Desktop GL 2.1 bare (SDL error: %s)\n", SDL_GetError());
+    SDL_GL_ResetAttributes();
+    SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
+    SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8);
+    SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
+    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
+    rc->m_Context = SDL_GL_CreateContext(win);
+  }
+
+  // 1c. Try Desktop OpenGL 3.0 Compatibility (supported by Mesa Zink)
+  if (!rc->m_Context)
+  {
+    iLog->Log("SDL_GL_CreateContext retry: Desktop GL 3.0 Compatibility (SDL error: %s)\n", SDL_GetError());
+    SDL_GL_ResetAttributes();
+    SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
+    SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8);
+    SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
+    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_COMPATIBILITY);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+    rc->m_Context = SDL_GL_CreateContext(win);
+  }
+
   // 2. Try GLES 3.0
   if (!rc->m_Context)
   {
@@ -2337,20 +2422,26 @@ exr:
   Matrix44 m;
   glGetFloatv(GL_MODELVIEW_MATRIX, m.GetData());
 
-  int parms[4];
+  int parms[4] = {0, 0, 0, 0};
 
   glGetIntegerv(GL_MAX_CLIP_PLANES, &m_MaxClipPlanes);
+  if (m_MaxClipPlanes <= 0) m_MaxClipPlanes = 6;
   iLog->Log(" OGL Max Clip Planes=%d", m_MaxClipPlanes);
   glGetIntegerv(GL_MAX_LIGHTS, &m_MaxLightSources);
+  if (m_MaxLightSources <= 0) m_MaxLightSources = 8;
   iLog->Log(" OGL Max Lights=%d", m_MaxLightSources);
   glGetIntegerv(GL_MAX_TEXTURE_SIZE,parms);
+  if (parms[0] <= 0) parms[0] = 2048;
   iLog->Log(" OGL Max Texture size=%dx%d",parms[0],parms[0]);
   glGetIntegerv(GL_MAX_VIEWPORT_DIMS,parms);
+  if (parms[0] <= 0) { parms[0] = width; parms[1] = height; }
   iLog->Log(" OGL Max Viewport dims=%dx%d",parms[0],parms[1]);
-  int nDepth;
+  int nDepth = 0;
   glGetIntegerv(GL_MAX_MODELVIEW_STACK_DEPTH, &nDepth);
+  if (nDepth <= 0) nDepth = 32;
   iLog->Log(" OGL Max ModelView Matrix stack depth=%d", nDepth);
   glGetIntegerv(GL_MAX_PROJECTION_STACK_DEPTH, &nDepth);
+  if (nDepth <= 0) nDepth = 32;
   iLog->Log(" OGL Max Projection Matrix stack depth=%d", nDepth);
   if (nGPU == RFT_HW_GFFX || nGPU == RFT_HW_GF3)
     m_MaxClipPlanes = 0;

@@ -78,7 +78,7 @@ public class GameActivity extends SDLActivity {
                 Os.setenv("MESA_LOADER_DRIVER_OVERRIDE", "zink", true);
                 Os.setenv("GALLIUM_DRIVER", "zink", true);
                 Os.setenv("ZINK_DESCRIPTORS", "lazy", true);
-                Os.setenv("MESA_GL_VERSION_OVERRIDE", "2.1", true);
+                Os.setenv("MESA_GL_VERSION_OVERRIDE", "2.1COMPAT", true);
                 Os.setenv("MESA_GLSL_VERSION_OVERRIDE", "140", true);
                 // Allow ARB shaders for Far Cry CryEngine 1
                 Os.setenv("MESA_EXTENSION_OVERRIDE", "+GL_ARB_vertex_program +GL_ARB_fragment_program", true);
@@ -110,9 +110,6 @@ public class GameActivity extends SDLActivity {
     protected String[] getArguments() {
         SharedPreferences prefs = getSharedPreferences(LauncherActivity.PREFS_NAME, MODE_PRIVATE);
         List<String> args = new ArrayList<>();
-
-        // Base executable name
-        args.add("FarCry");
 
         // Devmode
         if (prefs.getBoolean(LauncherActivity.KEY_DEVMODE, false)) {
