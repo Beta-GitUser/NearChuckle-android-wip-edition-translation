@@ -266,6 +266,14 @@ if [ ! -f "$JNI_LIBS_DIR/libXRenderOGL.so" ]; then
     echo "ERROR: libXRenderOGL.so is missing from $JNI_LIBS_DIR!"
     exit 1
 fi
+if [ ! -f "$JNI_LIBS_DIR/libCryGame.so" ]; then
+    echo "ERROR: libCryGame.so is missing from $JNI_LIBS_DIR!"
+    exit 1
+fi
+if [ ! -f "$JNI_LIBS_DIR/libCrySoundSystem.so" ]; then
+    echo "ERROR: libCrySoundSystem.so is missing from $JNI_LIBS_DIR!"
+    exit 1
+fi
 
 # Strip binaries if release
 echo "=== STEP: STRIP LIBS ==="

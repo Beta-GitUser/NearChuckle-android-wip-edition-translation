@@ -108,7 +108,6 @@ else()
 set(SRC_FILES ${SRC_FILES} 
 "UIVideoBinkDec.cpp"
 "libbinkdec/src/BinkAudio.cpp"
-"libbinkdec/src/BinkAudio.cpp"
 "libbinkdec/src/BinkDecoder.cpp"
 "libbinkdec/src/BinkVideo.cpp"
 "libbinkdec/src/BitReader.cpp"
@@ -147,4 +146,5 @@ else()
 if (NOT DISABLE_FFMPEG)
 target_link_libraries(${PROJECT_NAME} PRIVATE avutil avformat swscale)
 endif()
+target_link_libraries(${PROJECT_NAME} PRIVATE CrySoundSystem)
 endif()
