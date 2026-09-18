@@ -1727,11 +1727,20 @@ HWND CGLRenderer::SetMode(int x,int y,int width,int height,unsigned int cbpp, in
     if (win)
     {
         int actualW = 0, actualH = 0;
-        SDL_GetWindowSize(win, &actualW, &actualH);
+        SDL_GetWindowSizeInPixels(win, &actualW, &actualH);
+        if (actualW <= 0 || actualH <= 0)
+        {
+            SDL_GetWindowSize(win, &actualW, &actualH);
+        }
         if (actualW > 0 && actualH > 0)
         {
             m_width = actualW;
             m_height = actualH;
+            if (iConsole)
+            {
+                if (ICVar* cvW = iConsole->GetCVar("r_Width")) cvW->Set(actualW);
+                if (ICVar* cvH = iConsole->GetCVar("r_Height")) cvH->Set(actualH);
+            }
         }
     }
     else

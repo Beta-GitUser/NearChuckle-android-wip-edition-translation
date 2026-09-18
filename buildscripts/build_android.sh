@@ -190,6 +190,10 @@ if [ ! -f "$DEPS_PREFIX/lib/libGL.so" ]; then
     if [ ! -d "$SRC_CACHE/gl4es" ]; then
         git clone --depth 1 https://github.com/ptitSeb/gl4es "$SRC_CACHE/gl4es"
     fi
+    if [ -f "$ROOT_DIR/buildscripts/patches/gl4es_fix_arb_programs.patch" ]; then
+        echo "Applying gl4es ARB program crash fix patch..."
+        (cd "$SRC_CACHE/gl4es" && git apply "$ROOT_DIR/buildscripts/patches/gl4es_fix_arb_programs.patch" 2>/dev/null || true)
+    fi
     cmake -B "$DEPS_ROOT/build-gl4es-$ABI" -S "$SRC_CACHE/gl4es" \
         -DCMAKE_TOOLCHAIN_FILE="$TOOLCHAIN_FILE" \
         -DANDROID_ABI="$ABI" \

@@ -920,7 +920,10 @@ char *mfLoadCG(char *prog_text)
         glDeleteLists(m_Insts[m_CurInst].m_dwHandle, 1);
       else
       if (m_CGProfileType == CG_PROFILE_ARBFP1)
+      {
+        glBindProgramARB(GL_FRAGMENT_PROGRAM_ARB, 0);
         glDeleteProgramsARB(1, &m_Insts[m_CurInst].m_dwHandle);
+      }
       m_Insts[m_CurInst].m_dwHandle = 0;
     }
     if(m_Insts[m_CurInst].m_dwHandleExt && m_Insts[m_CurInst].m_dwHandleExt != -1)

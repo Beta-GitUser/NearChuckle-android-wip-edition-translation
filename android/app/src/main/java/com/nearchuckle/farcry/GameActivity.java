@@ -145,10 +145,20 @@ public class GameActivity extends SDLActivity {
 
         // Resolution
         int resMode = prefs.getInt(LauncherActivity.KEY_RES_MODE, 0);
-        android.util.DisplayMetrics dm = getResources().getDisplayMetrics();
+        android.util.DisplayMetrics dm = new android.util.DisplayMetrics();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            android.view.Display display = getDisplay();
+            if (display != null) {
+                display.getRealMetrics(dm);
+            } else {
+                getWindowManager().getDefaultDisplay().getRealMetrics(dm);
+            }
+        } else {
+            getWindowManager().getDefaultDisplay().getRealMetrics(dm);
+        }
         int screenW = Math.max(dm.widthPixels, dm.heightPixels);
         int screenH = Math.min(dm.widthPixels, dm.heightPixels);
-        if (resMode == 0) { // Native Display Resolution
+        if (resMode == 0) { // Native Display Resolution (true physical display panel size)
             args.add("\"r_Width " + screenW + "\"");
             args.add("\"r_Height " + screenH + "\"");
         } else if (resMode == 1) { // 1080p
@@ -186,6 +196,13 @@ public class GameActivity extends SDLActivity {
     protected void onCreate(Bundle savedInstanceState) {
         CrashHandler.init(this);
         super.onCreate(savedInstanceState);
+
+        // Extend edge-to-edge across the camera notch / display cutout
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+            WindowManager.LayoutParams lp = getWindow().getAttributes();
+            lp.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
+            getWindow().setAttributes(lp);
+        }
 
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         hideSystemUI();
