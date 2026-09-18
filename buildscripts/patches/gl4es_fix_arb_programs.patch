@@ -14,7 +14,7 @@ index 2243472..beffb87 100644
  
  #endif // _GL4ES_MAIN_CONFIG_H
 diff --git a/src/gl/fpe.c b/src/gl/fpe.c
-index 7d53643..8e2f828 100644
+index 7d53643..97e4a54 100644
 --- a/src/gl/fpe.c
 +++ b/src/gl/fpe.c
 @@ -302,11 +302,27 @@ void APIENTRY_GL4ES fpe_oldprogram(fpe_state_t* state) {
@@ -104,7 +104,131 @@ index 7d53643..8e2f828 100644
          gl4es_glCompileShader(fpe->frag);
          gl4es_glGetShaderiv(fpe->frag, GL_COMPILE_STATUS, &status);
          if(status!=GL_TRUE) {
-@@ -1401,36 +1419,40 @@ void realize_glenv(int ispoint, int first, int count, GLenum type, const void* i
+@@ -716,10 +734,9 @@ void APIENTRY_GL4ES fpe_glSecondaryColorPointer(GLint size, GLenum type, GLsizei
+     glstate->vao->vertexattrib[ATT_SECONDARY].pointer = pointer;
+     glstate->vao->vertexattrib[ATT_SECONDARY].divisor = 0;
+     glstate->vao->vertexattrib[ATT_SECONDARY].normalized = (type==GL_FLOAT)?GL_FALSE:GL_TRUE;
+-    glstate->vao->vertexattrib[ATT_SECONDARY].real_buffer = 0;
+-    glstate->vao->vertexattrib[ATT_SECONDARY].real_pointer = 0;
+     glstate->vao->vertexattrib[ATT_SECONDARY].buffer = glstate->vao->vertex;
+-
++    glstate->vao->vertexattrib[ATT_SECONDARY].real_buffer = (glstate->vao->vertex)?glstate->vao->vertex->real_buffer:0;
++    glstate->vao->vertexattrib[ATT_SECONDARY].real_pointer = (glstate->vao->vertex)?pointer:0;
+ }
+ 
+ void APIENTRY_GL4ES fpe_glVertexPointer(GLint size, GLenum type, GLsizei stride, const GLvoid *pointer) {
+@@ -730,9 +747,9 @@ void APIENTRY_GL4ES fpe_glVertexPointer(GLint size, GLenum type, GLsizei stride,
+     glstate->vao->vertexattrib[ATT_VERTEX].pointer = pointer;
+     glstate->vao->vertexattrib[ATT_VERTEX].divisor = 0;
+     glstate->vao->vertexattrib[ATT_VERTEX].normalized = GL_FALSE;
+-    glstate->vao->vertexattrib[ATT_VERTEX].real_buffer = 0;
+-    glstate->vao->vertexattrib[ATT_VERTEX].real_pointer = 0;
+     glstate->vao->vertexattrib[ATT_VERTEX].buffer = glstate->vao->vertex;
++    glstate->vao->vertexattrib[ATT_VERTEX].real_buffer = (glstate->vao->vertex)?glstate->vao->vertex->real_buffer:0;
++    glstate->vao->vertexattrib[ATT_VERTEX].real_pointer = (glstate->vao->vertex)?pointer:0;
+ }
+ 
+ void APIENTRY_GL4ES fpe_glColorPointer(GLint size, GLenum type, GLsizei stride, const GLvoid *pointer) {
+@@ -743,9 +760,9 @@ void APIENTRY_GL4ES fpe_glColorPointer(GLint size, GLenum type, GLsizei stride,
+     glstate->vao->vertexattrib[ATT_COLOR].pointer = pointer;
+     glstate->vao->vertexattrib[ATT_COLOR].divisor = 0;
+     glstate->vao->vertexattrib[ATT_COLOR].normalized = (type==GL_FLOAT)?GL_FALSE:GL_TRUE;
+-    glstate->vao->vertexattrib[ATT_COLOR].real_buffer = 0;
+-    glstate->vao->vertexattrib[ATT_COLOR].real_pointer = 0;
+     glstate->vao->vertexattrib[ATT_COLOR].buffer = glstate->vao->vertex;
++    glstate->vao->vertexattrib[ATT_COLOR].real_buffer = (glstate->vao->vertex)?glstate->vao->vertex->real_buffer:0;
++    glstate->vao->vertexattrib[ATT_COLOR].real_pointer = (glstate->vao->vertex)?pointer:0;
+ }
+ 
+ void APIENTRY_GL4ES fpe_glNormalPointer(GLenum type, GLsizei stride, const GLvoid *pointer) {
+@@ -756,9 +773,9 @@ void APIENTRY_GL4ES fpe_glNormalPointer(GLenum type, GLsizei stride, const GLvoi
+     glstate->vao->vertexattrib[ATT_NORMAL].pointer = pointer;
+     glstate->vao->vertexattrib[ATT_NORMAL].divisor = 0;
+     glstate->vao->vertexattrib[ATT_NORMAL].normalized = (type==GL_FLOAT)?GL_FALSE:GL_TRUE;
+-    glstate->vao->vertexattrib[ATT_NORMAL].real_buffer = 0;
+-    glstate->vao->vertexattrib[ATT_NORMAL].real_pointer = 0;
+     glstate->vao->vertexattrib[ATT_NORMAL].buffer = glstate->vao->vertex;
++    glstate->vao->vertexattrib[ATT_NORMAL].real_buffer = (glstate->vao->vertex)?glstate->vao->vertex->real_buffer:0;
++    glstate->vao->vertexattrib[ATT_NORMAL].real_pointer = (glstate->vao->vertex)?pointer:0;
+ }
+ 
+ void APIENTRY_GL4ES fpe_glTexCoordPointer(GLint size, GLenum type, GLsizei stride, const GLvoid *pointer) {
+@@ -773,9 +790,9 @@ void APIENTRY_GL4ES fpe_glTexCoordPointerTMU(GLint size, GLenum type, GLsizei st
+     glstate->vao->vertexattrib[ATT_MULTITEXCOORD0+TMU].pointer = pointer;
+     glstate->vao->vertexattrib[ATT_MULTITEXCOORD0+TMU].divisor = 0;
+     glstate->vao->vertexattrib[ATT_MULTITEXCOORD0+TMU].normalized = GL_FALSE;
+-    glstate->vao->vertexattrib[ATT_MULTITEXCOORD0+TMU].real_buffer = 0;
+-    glstate->vao->vertexattrib[ATT_MULTITEXCOORD0+TMU].real_pointer = 0;
+     glstate->vao->vertexattrib[ATT_MULTITEXCOORD0+TMU].buffer = glstate->vao->vertex;
++    glstate->vao->vertexattrib[ATT_MULTITEXCOORD0+TMU].real_buffer = (glstate->vao->vertex)?glstate->vao->vertex->real_buffer:0;
++    glstate->vao->vertexattrib[ATT_MULTITEXCOORD0+TMU].real_pointer = (glstate->vao->vertex)?pointer:0;
+ }
+ 
+ void APIENTRY_GL4ES fpe_glFogCoordPointer(GLenum type, GLsizei stride, const GLvoid *pointer) {
+@@ -786,9 +803,9 @@ void APIENTRY_GL4ES fpe_glFogCoordPointer(GLenum type, GLsizei stride, const GLv
+     glstate->vao->vertexattrib[ATT_FOGCOORD].pointer = pointer;
+     glstate->vao->vertexattrib[ATT_FOGCOORD].divisor = 0;
+     glstate->vao->vertexattrib[ATT_FOGCOORD].normalized = (type==GL_FLOAT)?GL_FALSE:GL_TRUE;
+-    glstate->vao->vertexattrib[ATT_FOGCOORD].real_buffer = 0;
+-    glstate->vao->vertexattrib[ATT_FOGCOORD].real_pointer = 0;
+     glstate->vao->vertexattrib[ATT_FOGCOORD].buffer = glstate->vao->vertex;
++    glstate->vao->vertexattrib[ATT_FOGCOORD].real_buffer = (glstate->vao->vertex)?glstate->vao->vertex->real_buffer:0;
++    glstate->vao->vertexattrib[ATT_FOGCOORD].real_pointer = (glstate->vao->vertex)?pointer:0;
+ }
+ 
+ void APIENTRY_GL4ES fpe_glEnable(GLenum cap) {
+@@ -821,11 +838,21 @@ void APIENTRY_GL4ES fpe_glDrawElements(GLenum mode, GLsizei count, GLenum type,
+     realize_glenv(mode==GL_POINTS, 0, count, type, indices, &scratch);
+     LOAD_GLES(glDrawElements);
+     int use_vbo = 0;
+-    if(glstate->vao->elements && glstate->vao->elements->real_buffer && indices>=glstate->vao->elements->data && indices<=((void*)((char*)glstate->vao->elements->data+glstate->vao->elements->size))) {
+-        use_vbo = 1;
+-        bindBuffer(GL_ELEMENT_ARRAY_BUFFER, glstate->vao->elements->real_buffer);
+-        indices = (GLvoid*)((uintptr_t)indices - (uintptr_t)(glstate->vao->elements->data));
+-        DBG(printf("Using VBO %d for indices\n", glstate->vao->elements->real_buffer);)
++    if(glstate->vao->elements && glstate->vao->elements->real_buffer) {
++        if(indices>=glstate->vao->elements->data && indices<=((void*)((char*)glstate->vao->elements->data+glstate->vao->elements->size))) {
++            use_vbo = 1;
++            bindBuffer(GL_ELEMENT_ARRAY_BUFFER, glstate->vao->elements->real_buffer);
++            indices = (GLvoid*)((uintptr_t)indices - (uintptr_t)(glstate->vao->elements->data));
++            DBG(printf("Using VBO %d for indices (from pointer -> offset %p)\n", glstate->vao->elements->real_buffer, indices);)
++        } else if((uintptr_t)indices < glstate->vao->elements->size) {
++            use_vbo = 1;
++            bindBuffer(GL_ELEMENT_ARRAY_BUFFER, glstate->vao->elements->real_buffer);
++            DBG(printf("Using VBO %d for indices (direct offset %p)\n", glstate->vao->elements->real_buffer, indices);)
++        } else {
++            bindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
++        }
++    } else {
++        bindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+     }
+     realize_bufferIndex();
+     gles_glDrawElements(mode, count, type, indices);
+@@ -893,10 +920,19 @@ void APIENTRY_GL4ES fpe_glDrawElementsInstanced(GLenum mode, GLsizei count, GLen
+     int use_vbo = 0;
+     void* inds;
+     GLfloat tmp[4] = {0.0f, 0.0f, 0.0f, 1.0f};
+-    if(glstate->vao->elements && glstate->vao->elements->real_buffer && indices>=glstate->vao->elements->data && indices<=((void*)((char*)glstate->vao->elements->data+glstate->vao->elements->size))) {
+-        use_vbo = 1;
+-        bindBuffer(GL_ELEMENT_ARRAY_BUFFER, glstate->vao->elements->real_buffer);
+-        inds = (void*)((uintptr_t)indices - (uintptr_t)(glstate->vao->elements->data));
++    if(glstate->vao->elements && glstate->vao->elements->real_buffer) {
++        if(indices>=glstate->vao->elements->data && indices<=((void*)((char*)glstate->vao->elements->data+glstate->vao->elements->size))) {
++            use_vbo = 1;
++            bindBuffer(GL_ELEMENT_ARRAY_BUFFER, glstate->vao->elements->real_buffer);
++            inds = (void*)((uintptr_t)indices - (uintptr_t)(glstate->vao->elements->data));
++        } else if((uintptr_t)indices < glstate->vao->elements->size) {
++            use_vbo = 1;
++            bindBuffer(GL_ELEMENT_ARRAY_BUFFER, glstate->vao->elements->real_buffer);
++            inds = (void*)indices;
++        } else {
++            inds = (void*)indices;
++            bindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
++        }
+     } else {
+         inds = (void*)indices;
+         bindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+@@ -1401,36 +1437,40 @@ void realize_glenv(int ispoint, int first, int count, GLenum type, const void* i
          }
      }
      // oldprograms
@@ -165,7 +289,7 @@ index 7d53643..8e2f828 100644
      // set VertexAttrib if needed
      for(int i=0; i<hardext.maxvattrib; i++) 
      if(glprogram->va_size[i])   // only check used VA...
-@@ -1742,6 +1764,7 @@ const char* blend_color_code = "_gl4es_BlendColor";
+@@ -1742,6 +1782,7 @@ const char* blend_color_code = "_gl4es_BlendColor";
  int builtin_CheckUniform(program_t *glprogram, char* name, GLint id, int size) {
      if(strncmp(name, gl4es_code, strlen(gl4es_code)))
          return 0;   // doesn't start with "_gl4es_", no need to look further
@@ -173,7 +297,7 @@ index 7d53643..8e2f828 100644
      int builtin = isBuiltinMatrix(name);
      // check matrices
      if(builtin!=-1) {
-@@ -1832,18 +1855,19 @@ int builtin_CheckUniform(program_t *glprogram, char* name, GLint id, int size) {
+@@ -1832,18 +1873,19 @@ int builtin_CheckUniform(program_t *glprogram, char* name, GLint id, int size) {
          glprogram->builtin_instanceID = id;
          return 1;
      }
@@ -200,7 +324,7 @@ index 7d53643..8e2f828 100644
          if(n>=0 && n<hardext.maxplanes) {
              glprogram->builtin_clipplanes[n] = id;
              glprogram->has_builtin_clipplanes = 1;
-@@ -1877,22 +1901,22 @@ int builtin_CheckUniform(program_t *glprogram, char* name, GLint id, int size) {
+@@ -1877,22 +1919,22 @@ int builtin_CheckUniform(program_t *glprogram, char* name, GLint id, int size) {
      if(strncmp(name, texenvcolor_code, strlen(texenvcolor_code))==0) {
          // it a TexEnvColor! grab it's number
          int l = strlen(texenvcolor_code);
@@ -232,7 +356,7 @@ index 7d53643..8e2f828 100644
      if(strncmp(name, texgeneyestart_code, strlen(texgeneyestart_code))==0) {
          for (int i=0; i<4; i++) {
              char tmp[100];
-@@ -2048,90 +2072,134 @@ int builtin_CheckUniform(program_t *glprogram, char* name, GLint id, int size) {
+@@ -2048,90 +2090,134 @@ int builtin_CheckUniform(program_t *glprogram, char* name, GLint id, int size) {
          return 1;
      }
      // oldprogram

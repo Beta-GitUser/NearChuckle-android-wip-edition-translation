@@ -1701,6 +1701,7 @@ void CGLRenderer::UpdateTextureInVideoMemory(uint tnum, unsigned char *newdata,i
   }
   else
   {
+#if !defined(__ANDROID__) && !defined(__linux)
     if (TargetTex[tnum] == GL_TEXTURE_2D)
     {
       int nw = ilog2(w);
@@ -1710,6 +1711,7 @@ void CGLRenderer::UpdateTextureInVideoMemory(uint tnum, unsigned char *newdata,i
       if (h != nh)
         return;
     }
+#endif
     glTexSubImage2D(TargetTex[tnum],0,posx,posy,w,h,srcformat,GL_UNSIGNED_BYTE,newdata);
   }
 }

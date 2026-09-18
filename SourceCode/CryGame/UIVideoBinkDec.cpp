@@ -153,7 +153,7 @@ bool CUIVideoBinkDecoder::Init(const char* pathToVideo, bool needSound)
 		m_frameBuffer = new uint8[w * h * 4];
 		memset(m_frameBuffer, 0, w * h * 4);
 		m_textureId = GetISystem()->GetIRenderer()->DownLoadToVideoMemory(m_frameBuffer,
-			w, h, eTF_0888, eTF_0888, 0, 0, FILTER_LINEAR, 0, nullptr, FT_DYNAMIC);
+			w, h, eTF_8888, eTF_8888, 0, 0, FILTER_LINEAR, 0, nullptr, FT_DYNAMIC);
 	
 		if (m_textureId < 0)
 		{
@@ -288,10 +288,10 @@ void CUIVideoBinkDecoder::DrawYUV(void)
 			if (g < 0) g = 0; else if (g > 255) g = 255;
 			if (b < 0) b = 0; else if (b > 255) b = 255;
 
-			// RGBA
-			destRow[j * 4 + 0] = (uint8_t)r;
+			// BGRA (matching eTF_8888 / GL_BGRA_EXT in OpenGL renderer)
+			destRow[j * 4 + 0] = (uint8_t)b;
 			destRow[j * 4 + 1] = (uint8_t)g;
-			destRow[j * 4 + 2] = (uint8_t)b;
+			destRow[j * 4 + 2] = (uint8_t)r;
 			destRow[j * 4 + 3] = 255;
 		}
 	}
