@@ -98,7 +98,7 @@ public class LauncherActivity extends Activity {
             new AlertDialog.Builder(this)
                     .setTitle(R.string.dialog_crash_detected_title)
                     .setMessage(R.string.dialog_crash_detected_msg)
-                    .setPositiveButton("Открыть отчет", (dialog, which) -> {
+                    .setPositiveButton("Open report", (dialog, which) -> {
                         Intent intent = new Intent(this, CrashReportActivity.class);
                         startActivity(intent);
                     })
@@ -126,10 +126,10 @@ public class LauncherActivity extends Activity {
 
         // Resolution options
         String[] resOptions = new String[]{
-                "Автоматически (Разрешение экрана)",
+                "Automatic (Fullscreen)",
                 "1920x1080 (FHD)",
-                "1280x720 (HD - Рекомендуется)",
-                "960x540 (qHD - Для слабых устройств)"
+                "1280x720 (HD - Recommended)",
+                "960x540 (qHD - For slower devices)"
         };
         ArrayAdapter<String> resAdapter = new ArrayAdapter<>(this,
                 android.R.layout.simple_spinner_dropdown_item, resOptions);
@@ -185,7 +185,7 @@ public class LauncherActivity extends Activity {
 
         int fov = prefs.getInt(KEY_FOV, 90);
         seekbarFov.setProgress(Math.max(0, Math.min(50, fov - 70)));
-        tvFovLabel.setText("Поле зрения (FOV): " + fov + "°");
+        tvFovLabel.setText("Field of View (FOV): " + fov + "°");
 
         switchDevmode.setChecked(prefs.getBoolean(KEY_DEVMODE, false));
         editCustomArgs.setText(prefs.getString(KEY_CUSTOM_ARGS, ""));
@@ -195,7 +195,7 @@ public class LauncherActivity extends Activity {
         float sens = prefs.getFloat(KEY_MOUSE_SENSITIVITY, 1.0f);
         int sensProgress = Math.round((sens - 0.5f) * 10f);
         seekbarSensitivity.setProgress(Math.max(0, Math.min(25, sensProgress)));
-        tvSensLabel.setText(String.format("Чувствительность: %.1fx", sens));
+        tvSensLabel.setText(String.format("Sensitivity: %.1fx", sens));
 
         switchHideControls.setChecked(prefs.getBoolean(KEY_HIDE_CONTROLS, false));
     }
@@ -258,9 +258,9 @@ public class LauncherActivity extends Activity {
             intent.setType("application/zip");
             intent.addCategory(Intent.CATEGORY_OPENABLE);
             try {
-                startActivityForResult(Intent.createChooser(intent, "Выберите ZIP архив Turnip драйвера"), REQ_CODE_ZIP);
+                startActivityForResult(Intent.createChooser(intent, "Choose ZIP archive of a Turnip driver"), REQ_CODE_ZIP);
             } catch (Exception e) {
-                Toast.makeText(this, "Файловый менеджер не найден", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "File manager is not found", Toast.LENGTH_SHORT).show();
             }
         });
 
@@ -271,11 +271,11 @@ public class LauncherActivity extends Activity {
 
             new AlertDialog.Builder(this)
                     .setTitle(R.string.btn_delete_driver)
-                    .setMessage("Удалить драйвер " + sel.getName() + "?")
+                    .setMessage("Remove driver " + sel.getName() + "?")
                     .setPositiveButton(R.string.yes, (dialog, which) -> {
                         TurnipDriverManager.deleteDriver(this, sel.getId());
                         setupDriverSpinner();
-                        Toast.makeText(this, "Драйвер удален", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(this, "Driver removed", Toast.LENGTH_SHORT).show();
                     })
                     .setNegativeButton(R.string.no, null)
                     .show();
@@ -286,7 +286,7 @@ public class LauncherActivity extends Activity {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 int fov = progress + 70;
-                tvFovLabel.setText("Поле зрения (FOV): " + fov + "°");
+                tvFovLabel.setText("Field of View (FOV): " + fov + "°");
             }
             @Override public void onStartTrackingTouch(SeekBar seekBar) {}
             @Override public void onStopTrackingTouch(SeekBar seekBar) {}
@@ -297,7 +297,7 @@ public class LauncherActivity extends Activity {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 float sens = 0.5f + (progress / 10.0f);
-                tvSensLabel.setText(String.format("Чувствительность: %.1fx", sens));
+                tvSensLabel.setText(String.format("Sensitivity: %.1fx", sens));
             }
             @Override public void onStartTrackingTouch(SeekBar seekBar) {}
             @Override public void onStopTrackingTouch(SeekBar seekBar) {}
@@ -336,7 +336,7 @@ public class LauncherActivity extends Activity {
         }
         File gameDir = new File(path);
         if (!gameDir.exists() || !gameDir.isDirectory()) {
-            Toast.makeText(this, "Папка с игрой не существует", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "No game folder", Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -348,7 +348,7 @@ public class LauncherActivity extends Activity {
         if (targetPak.exists() && targetPak.length() > 1024) {
             new AlertDialog.Builder(this)
                     .setTitle(R.string.btn_download_shaders)
-                    .setMessage("Файл шейдеров уже существует (" + (targetPak.length() / 1024) + " КБ). Скачать заново?")
+                    .setMessage("Shader file already exists (" + (targetPak.length() / 1024) + " КБ). Download and replace?")
                     .setPositiveButton(R.string.yes, (dialog, which) -> startShaderDownload(targetPak))
                     .setNegativeButton(R.string.no, null)
                     .show();
@@ -402,7 +402,7 @@ public class LauncherActivity extends Activity {
                     progress.dismiss();
                     Toast.makeText(this, R.string.dialog_shaders_success, Toast.LENGTH_LONG).show();
                     new AlertDialog.Builder(this)
-                            .setTitle("Шейдеры установлены")
+                            .setTitle("Shaders downloaded")
                             .setMessage(R.string.dialog_shaders_success)
                             .setPositiveButton(R.string.ok, null)
                             .show();
@@ -412,7 +412,7 @@ public class LauncherActivity extends Activity {
                 runOnUiThread(() -> {
                     progress.dismiss();
                     new AlertDialog.Builder(this)
-                            .setTitle("Ошибка")
+                            .setTitle("Error")
                             .setMessage(getString(R.string.dialog_shaders_failed) + e.getMessage())
                             .setPositiveButton(R.string.ok, null)
                             .show();
@@ -434,7 +434,7 @@ public class LauncherActivity extends Activity {
 
         File folder = new File(path);
         if (!folder.exists() || !folder.isDirectory()) {
-            tvGamePathStatus.setText("⚠ Папка не существует");
+            tvGamePathStatus.setText("⚠ Folder doesn't exists");
             tvGamePathStatus.setTextColor(getColor(R.color.status_red));
             return;
         }
@@ -476,7 +476,7 @@ public class LauncherActivity extends Activity {
             itemFiles.clear();
 
             if (currentDir[0].getParentFile() != null) {
-                itemNames.add(".. (На уровень выше)");
+                itemNames.add(".. (On level above)");
                 itemFiles.add(currentDir[0].getParentFile());
             }
 
@@ -538,7 +538,7 @@ public class LauncherActivity extends Activity {
             }
         } catch (Exception ignored) {}
 
-        Toast.makeText(this, "Установка драйвера Turnip из " + fileName + "...", Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, "Turnip driver install from " + fileName + "...", Toast.LENGTH_SHORT).show();
 
         try {
             DriverInfo installed = TurnipDriverManager.installDriverFromUri(this, uri, fileName);
@@ -547,13 +547,13 @@ public class LauncherActivity extends Activity {
 
             new AlertDialog.Builder(this)
                     .setTitle(R.string.dialog_driver_installed)
-                    .setMessage(String.format("Драйвер '%s' успешно распакован и готов к использованию с Mesa Zink!",
+                    .setMessage(String.format("Driver '%s' is sucessfully installed and ready to use with Mesa Zink!",
                             installed.getName()))
                     .setPositiveButton(R.string.ok, null)
                     .show();
         } catch (Exception e) {
             new AlertDialog.Builder(this)
-                    .setTitle("Ошибка установки")
+                    .setTitle("Install error")
                     .setMessage(getString(R.string.dialog_driver_install_failed) + e.getMessage())
                     .setPositiveButton(R.string.ok, null)
                     .show();
@@ -579,8 +579,8 @@ public class LauncherActivity extends Activity {
         File f = new File(gamePath);
         if (!f.exists()) {
             new AlertDialog.Builder(this)
-                    .setTitle("Папка не найдена")
-                    .setMessage("Папка с файлами Far Cry (" + gamePath + ") не существует. Выберите правильную папку с установленной игрой Far Cry.")
+                    .setTitle("Folder not found")
+                    .setMessage("Folder with Far Cry data (" + gamePath + ") doesn't exists. Choose correct folder with Far Cry game data in it.")
                     .setPositiveButton(R.string.ok, null)
                     .show();
             return;
@@ -588,9 +588,9 @@ public class LauncherActivity extends Activity {
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && !Environment.isExternalStorageManager()) {
             new AlertDialog.Builder(this)
-                    .setTitle("Доступ к файлам игры")
-                    .setMessage("Для чтения файлов игры Far Cry из памяти устройства требуется предоставить разрешение 'Доступ ко всем файлам'.")
-                    .setPositiveButton("Предоставить", (dialog, which) -> {
+                    .setTitle("Read permission")
+                    .setMessage("To read Far Cry game data you need to provide permission.")
+                    .setPositiveButton("Allow", (dialog, which) -> {
                         try {
                             Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
                             intent.setData(Uri.parse("package:" + getPackageName()));
@@ -599,17 +599,17 @@ public class LauncherActivity extends Activity {
                             startGameActivity();
                         }
                     })
-                    .setNegativeButton("Продолжить", (dialog, which) -> startGameActivity())
+                    .setNegativeButton("Continue", (dialog, which) -> startGameActivity())
                     .show();
             return;
         }
 
         if (!checkGameFilesExist(gamePath)) {
             new AlertDialog.Builder(this)
-                    .setTitle("Файлы игры не обнаружены")
-                    .setMessage("В папке:\n" + gamePath + "\n\nне найдены файлы игры Far Cry (папка FCData, Levels или файлы *.pak).\n\nСкопируйте файлы из оригинальной игры Far Cry (версия для ПК) в эту папку.\n\nПопробовать запустить все равно?")
-                    .setPositiveButton("Запустить", (dialog, which) -> startGameActivity())
-                    .setNegativeButton("Отмена", null)
+                    .setTitle("Game files not found")
+                    .setMessage("In folder:\n" + gamePath + "\n\nthere's no game data of Far Cry (folders FCData, Levels or files *.pak).\n\nCopy the original Far Cry (for PC) files to this folder.\n\nTry running anyway?")
+                    .setPositiveButton("Launch", (dialog, which) -> startGameActivity())
+                    .setNegativeButton("Cancel", null)
                     .show();
             return;
         }
