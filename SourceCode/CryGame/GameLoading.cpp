@@ -853,17 +853,6 @@ bool CXGame::LoadFromStream(CStream &stm, bool isdemo)
 		}
 	} //i
 
-#ifdef __ANDROID__
-	if (ICVar* pVar = m_pSystem->GetIConsole()->GetCVar("r_Quality_BumpMapping"))
-		pVar->Set(3);
-	if (ICVar* pVar = m_pSystem->GetIConsole()->GetCVar("r_NoPS20"))
-		pVar->Set(0);
-	if (ICVar* pVar = m_pSystem->GetIConsole()->GetCVar("GL_NV30_PS20"))
-		pVar->Set(1);
-	if (ICVar* pVar = m_pSystem->GetIConsole()->GetCVar("r_Fullscreen"))
-		pVar->Set(1);
-#endif
-
   if(m_pSystem->GetISoundSystem())
     m_pSystem->GetISoundSystem()->Silence();
 
@@ -2508,17 +2497,6 @@ bool CXGame::LoadFromStream_PATCH_1(CStream &stm, bool isdemo, CScriptObjectStre
 				return false;
 			}
 	} //i
-
-#ifdef __ANDROID__
-	if (ICVar* pVar = m_pSystem->GetIConsole()->GetCVar("r_Quality_BumpMapping"))
-		pVar->Set(3);
-	if (ICVar* pVar = m_pSystem->GetIConsole()->GetCVar("r_NoPS20"))
-		pVar->Set(0);
-	if (ICVar* pVar = m_pSystem->GetIConsole()->GetCVar("GL_NV30_PS20"))
-		pVar->Set(1);
-	if (ICVar* pVar = m_pSystem->GetIConsole()->GetCVar("r_Fullscreen"))
-		pVar->Set(1);
-#endif
 
 	if(m_pSystem->GetISoundSystem())
 		m_pSystem->GetISoundSystem()->Silence();

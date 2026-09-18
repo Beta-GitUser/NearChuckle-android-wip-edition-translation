@@ -248,33 +248,22 @@ int CUIVideoPanel::Draw(int iPass)
 		pRect.fHeight = fHeight;
 #ifdef CRY_NO_FFMPEG
 		IRenderer *rend = m_pUISystem->GetIRenderer();
-		float vw = (float)m_videoPlayer.GetWidth();
-		float vh = (float)m_videoPlayer.GetHeight();
-		float rw = (float)rend->GetWidth();
-		float rh = (float)rend->GetHeight();
 
-		if (vw > 0.0f && vh > 0.0f && rw > 0.0f && rh > 0.0f)
+		float window_ratio = (float)rend->GetWidth() / (float)rend->GetHeight();
+		float video_ratio = m_videoPlayer.GetWidth() / (float)m_videoPlayer.GetHeight();
+
+		float ratio_scale = (window_ratio / video_ratio);
+		float wscale = 800.0f / ratio_scale;
+
+		if (ratio_scale > 1.0f)
 		{
-			float window_ratio = rw / rh;
-			float video_ratio = vw / vh;
-			if (window_ratio > video_ratio)
-			{
-				float ratio_scale = window_ratio / video_ratio;
-				float wscale = 800.0f / ratio_scale;
-				pRect.fLeft = (800.0f - wscale) * 0.5f;
-				pRect.fWidth = wscale;
-				pRect.fTop = 0.0f;
-				pRect.fHeight = 600.0f;
-			}
-			else
-			{
-				float ratio_scale = video_ratio / window_ratio;
-				float hscale = 600.0f / ratio_scale;
-				pRect.fLeft = 0.0f;
-				pRect.fWidth = 800.0f;
-				pRect.fTop = (600.0f - hscale) * 0.5f;
-				pRect.fHeight = hscale;
-			}
+			pRect.fLeft = (float)(800.0f - wscale) / 2.0f;
+			pRect.fWidth = (float)800.0f / ratio_scale;
+		}
+		else
+		{
+			pRect.fLeft = 0.0f;
+			pRect.fWidth = 800.0f;
 		}
 #endif
 		if (m_bKeepAspect)

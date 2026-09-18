@@ -64,8 +64,6 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     ${VORBISFILE_STATIC_LIB}
     legacy_stdio_definitions.lib
 )
-elseif (ANDROID)
-target_link_libraries(${PROJECT_NAME} PUBLIC openal ogg vorbis vorbisfile log)
 else()
 target_link_libraries(${PROJECT_NAME} PUBLIC vorbisfile openal)
 endif()

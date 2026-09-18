@@ -57,7 +57,7 @@ void CGLRenderer::DrawObjSprites_NoBend (list2<CStatObjInst*> *pList, float fMax
   int prev_tid=-1;
 
   m_RP.m_FlagsModificators &= ~7;
-  m_RP.m_PersFlags &= ~(RBPF_PS1NEEDSET | RBPF_PS2NEEDSET | RBPF_VSNEEDSET | RBPF_TSNEEDSET);
+  m_RP.m_PersFlags &= ~RBPF_PS1NEEDSET | RBPF_PS2NEEDSET | RBPF_VSNEEDSET | RBPF_TSNEEDSET;
   EF_CommitPS();
   EF_CommitVS();
   EF_SetColorOp(eCO_MODULATE2X, eCO_MODULATE, DEF_TEXARG0, DEF_TEXARG0);
@@ -487,7 +487,7 @@ void CGLRenderer::DrawObjSprites_NoBend_Merge (list2<CStatObjInst*> *pList, floa
   m_TexMan->SetTexture(TX_FIRSTBIND, eTT_Base);
 
   m_RP.m_FlagsModificators &= ~7;
-  m_RP.m_PersFlags &= ~(RBPF_PS1NEEDSET | RBPF_PS2NEEDSET | RBPF_VSNEEDSET | RBPF_TSNEEDSET);
+  m_RP.m_PersFlags &= ~RBPF_PS1NEEDSET | RBPF_PS2NEEDSET | RBPF_VSNEEDSET | RBPF_TSNEEDSET;
   EF_CommitPS();
   EF_CommitVS();
   EF_SetColorOp(eCO_MODULATE2X, eCO_MODULATE, DEF_TEXARG0, DEF_TEXARG0);

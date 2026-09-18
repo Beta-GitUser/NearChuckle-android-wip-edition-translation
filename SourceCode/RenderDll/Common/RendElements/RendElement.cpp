@@ -85,8 +85,8 @@ static _inline int Compare(SRendItemStenc &a, SRendItemStenc &b)
   if (a.ObjSort > b.ObjSort)
     return 1;
 
-  UINT_PTR Itema = (UINT_PTR)a.Item;
-  UINT_PTR Itemb = (UINT_PTR)b.Item;
+  uint Itema = (uint)a.Item;
+  uint Itemb = (uint)b.Item;
 
   if (a.ObjSort & FOB_IGNOREREPOINTER)
   {

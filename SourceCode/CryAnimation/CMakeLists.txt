@@ -1,9 +1,6 @@
 project(CryAnimation LANGUAGES CXX ASM_MASM)
 
-if (${ARCH_TYPE} STREQUAL "x86")
-    add_definitions(-DDO_ASM -DPROC_INTEL)
-endif()
-add_definitions(-D_USRDLL -DCRYANIMATION_EXPORTS)
+add_definitions(-DDO_ASM -DPROC_INTEL -D_USRDLL -DCRYANIMATION_EXPORTS)
 
 set(SRC_FILES
     "AnimObject.cpp"

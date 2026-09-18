@@ -305,13 +305,8 @@ int CUIStatic::Draw(int iPass)
 		int iViewportX, iViewportY, iViewportW, iViewportH;
 		pRenderer->GetViewport(&iViewportX, &iViewportY, &iViewportW, &iViewportH);
 
-		// set new viewport (in OpenGL viewport Y is from bottom of window)
-#if defined(OPENGL) || defined(__ANDROID__) || defined(__linux)
-		int iRenderH = pRenderer->GetHeight();
-		pRenderer->SetViewport(iX, iRenderH - iY - iH, iW, iH);
-#else
+		// set new viewport
 		pRenderer->SetViewport(iX, iY, iW, iH);
-#endif
 
 		// update angle
 		m_fAngle += m_fModelRotationAcc * m_pUISystem->GetISystem()->GetITimer()->GetFrameTime() * m_fModelRotation * 360.0f;

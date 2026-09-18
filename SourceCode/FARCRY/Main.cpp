@@ -17,10 +17,7 @@
 #include <SDL.h>
 #else
 #include <SDL3/SDL.h>
-#include <SDL3/SDL_main.h>
 #endif
-
-#include <locale.h>
 
 #ifdef WIN32
 #include <windows.h>
@@ -107,11 +104,7 @@ static ISystem *g_pISystem=NULL;
 static bool g_bSystemRelaunch = false;
 static char szMasterCDFolder[_MAX_PATH];
 
-#ifdef WIN32
 static void* g_hSystemHandle=NULL;
-#else
-static SDL_SharedObject* g_hSystemHandle=NULL;
-#endif
 #ifdef _WIN32
 #define DLL_SYSTEM "CrySystem.dll"
 #define DLL_GAME	 "CryGame.dll"
@@ -186,23 +179,6 @@ void SetMasterCDFolder()
 	strcat( path_buffer,".." );
 	SetCurrentDirectory( path_buffer );
 	GetCurrentDirectory( sizeof(szMasterCDFolder),szMasterCDFolder );
-#elif defined(__ANDROID__)
-	const char* pDataDir = getenv("FARCRY_DATA_DIR");
-	if (pDataDir && strlen(pDataDir) > 0)
-	{
-		strncpy(szMasterCDFolder, pDataDir, sizeof(szMasterCDFolder) - 1);
-		szMasterCDFolder[sizeof(szMasterCDFolder) - 1] = '\0';
-		chdir(szMasterCDFolder);
-	}
-	else
-	{
-		getcwd(szMasterCDFolder, sizeof(szMasterCDFolder));
-	}
-	const char* pModPath = getenv("MODULE_PATH");
-	if (pModPath && strlen(pModPath) > 0)
-	{
-		SetModulePath(pModPath);
-	}
 #else
 	char* last_slash;
 	char dll_path[_MAX_PATH];
@@ -286,9 +262,7 @@ void CheckFarCryCD( HINSTANCE hInstance ) {};
 #endif // FARCRY_CD_CHECK_RUSSIAN
 
 ///////////////////////////////////////////////
-#ifdef __ANDROID__
-extern "C" SDLMAIN_DECLSPEC int SDL_main(int argc, char* argv[])
-#elif !defined(__linux) && !defined(__linux__)
+#ifndef __linux
 int APIENTRY WinMain(HINSTANCE hInstance,
                      HINSTANCE hPrevInstance,
                      LPSTR     lpCmdLine,
@@ -721,11 +695,7 @@ bool RunGame(int argc, char** argv)
 	int i;
 #endif
 	SDL_Init(SDL_INIT_VIDEO);
-#ifdef __ANDROID__
-	setlocale(LC_ALL, "C");
-#else
 	setlocale(LC_ALL, "en_US.utf8");
-#endif
 
 //	InvokeExternalConfigTool();
 
@@ -781,49 +751,18 @@ bool RunGame(int argc, char** argv)
 		//		return false;
 		//	}
 		//}
-#ifdef __ANDROID__
-		string sysPath = DLL_SYSTEM;
-		if (GetModulePath() && strlen(GetModulePath()) > 0)
-		{
-			sysPath = string(GetModulePath());
-			if (sysPath.back() != '/')
-				sysPath += "/";
-			sysPath += DLL_SYSTEM;
-		}
-		// Load libCrySystem.so with RTLD_GLOBAL so exported symbols are visible to all engine modules
-		void* hSys = dlopen(sysPath.c_str(), RTLD_NOW | RTLD_GLOBAL);
-		if (!hSys)
-			hSys = dlopen(sysPath.c_str(), RTLD_LAZY | RTLD_GLOBAL);
-		if (!hSys)
-			hSys = dlopen(DLL_SYSTEM, RTLD_NOW | RTLD_GLOBAL);
-		if (!hSys)
-			hSys = dlopen(DLL_SYSTEM, RTLD_LAZY | RTLD_GLOBAL);
-		if (!hSys)
-			g_hSystemHandle = SDL_LoadObject(sysPath.c_str());
-		else
-			g_hSystemHandle = (SDL_SharedObject*)hSys;
-		if (!g_hSystemHandle)
-			g_hSystemHandle = SDL_LoadObject(DLL_SYSTEM);
-#else
 		g_hSystemHandle = SDL_LoadObject((string(szMasterCDFolder) + "/" + DLL_SYSTEM).c_str());
-#endif
 		if (!g_hSystemHandle)
 		{
 			string errorStr = "CrySystem.dll Loading Failed:\n";
-			const char* dlErr = dlerror();
-			if (dlErr)
-				errorStr += dlErr;
-			else
-				errorStr += SDL_GetError();
+			errorStr += SDL_GetError();
 			fprintf(stderr, "%s\n", errorStr.c_str());
 			SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "FarCry Error", errorStr.c_str(), nullptr);
 
 			return false;
 		}
 
-		PFNCREATESYSTEMINTERFACE pfnCreateSystemInterface = (PFNCREATESYSTEMINTERFACE)dlsym( (void*)g_hSystemHandle,"CreateSystemInterface" );
-		if (!pfnCreateSystemInterface)
-			pfnCreateSystemInterface = (PFNCREATESYSTEMINTERFACE)SDL_LoadFunction( g_hSystemHandle,"CreateSystemInterface" );
+		PFNCREATESYSTEMINTERFACE pfnCreateSystemInterface = (PFNCREATESYSTEMINTERFACE)SDL_LoadFunction( g_hSystemHandle,"CreateSystemInterface" );
 
 		// Initialize with instance and window handles.
 #ifndef __linux
@@ -892,7 +831,7 @@ bool RunGame(int argc, char** argv)
 				strncpy(ip.szGameCmdLine,szLocalCmdLine,sizeof(ip.szGameCmdLine));
 			if (!g_pISystem->CreateGame( ip ))
 			{
-				SDL_ShowSimpleMessageBox( SDL_MESSAGEBOX_ERROR, "FarCry Error", "CreateGame Failed: CryGame.dll", nullptr);
+				//Error( "CreateGame Failed" );
 				return false;
 			}
 	#endif
@@ -904,19 +843,11 @@ bool RunGame(int argc, char** argv)
 		g_bSystemRelaunch = false;
 
 		// set the controls to exclusive mode
-		if (g_pISystem && g_pISystem->GetIInput())
-		{
-			g_pISystem->GetIInput()->ClearKeyState();
-			g_pISystem->GetIInput()->SetMouseExclusive(true);
-			g_pISystem->GetIInput()->SetKeyboardExclusive(true);
-		}
+		g_pISystem->GetIInput()->ClearKeyState();
+		g_pISystem->GetIInput()->SetMouseExclusive(true);
+		g_pISystem->GetIInput()->SetKeyboardExclusive(true);
 
-		IGame *pGame = g_pISystem ? g_pISystem->GetIGame() : nullptr;
-		if (!pGame)
-		{
-			SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "FarCry Error", "GetIGame returned NULL", nullptr);
-			return false;
-		}
+		IGame *pGame = g_pISystem->GetIGame();
 
 //////////////////////////////////////////////////////////////////////////
 #ifdef GERMAN_GORE_CHECK

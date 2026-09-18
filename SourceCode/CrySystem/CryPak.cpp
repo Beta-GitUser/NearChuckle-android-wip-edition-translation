@@ -32,7 +32,7 @@
 #endif
 
 #ifdef LINUX
-#include <dirent.h>
+#include <sys/dir.h>
 #include <unistd.h>
 #else
 #	include <direct.h>
@@ -1295,28 +1295,28 @@ bool CCryPak::OpenPacksCommon(const char* szDir, char *cWork, unsigned nFlags)
 		return false;
 	}
 
-	string dirPath = buf;
+	p1 = buf;
 	rp = realpath(".", NULL);
-	if (rp)
+	if (!rp)
 	{
-		size_t rplen = strlen(rp);
-		if (strncmp(dirPath.c_str(), rp, rplen) == 0)
-		{
-			dirPath = dirPath.substr(rplen);
-			while (!dirPath.empty() && (dirPath[0] == '/' || dirPath[0] == '\\'))
-				dirPath = dirPath.substr(1);
-		}
-		free(rp);
+		closedir(fdir);
+		return false;
 	}
-	if (!dirPath.empty() && dirPath.back() != '/' && dirPath.back() != '\\')
-		dirPath += '/';
+	p2 = rp;
+	while (*p1 == *p2)
+	{
+		p1++;
+		p2++;
+	}
+	p1++;
+	free(rp);
 
 	while ((d = readdir(fdir)) != NULL)
 	{
 		ext = strstr(d->d_name, ".");
 		if (ext && !strcasecmp(ext, ".pak"))
 		{
-			files.push_back(dirPath + string(d->d_name));
+			files.push_back(string(p1) + string(d->d_name));
 		}
 	}
 
