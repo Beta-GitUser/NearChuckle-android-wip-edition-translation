@@ -16,6 +16,7 @@
 #define _CRY_COMMON_LINUX_SPECIFIC_HDR_
 
 #include <stdint.h>
+#include <stddef.h>
 #include <pthread.h>
 #include <math.h>
 #include <string.h>
@@ -85,7 +86,7 @@ inline int IsHeapValid ()
 #define TEXT
 
 #ifndef __cplusplus
-#ifndef _WCHAR_T_DEFINED
+#if !defined(_WCHAR_T_DEFINED) && !defined(__WCHAR_TYPE__) && !defined(__ANDROID__)
 typedef unsigned short wchar_t;
 #define TCHAR wchar_t;
 #define _WCHAR_T_DEFINED
@@ -199,9 +200,16 @@ typedef struct in_addr_windows
 //#define __TIMESTAMP__ __DATE__" "__TIME__
 
 // function renaming
-#define _finite __finite
-#define _snprintf snprintf
+#ifdef __cplusplus
+#include <cmath>
+#define _finite std::isfinite
+#define _isnan std::isnan
+#else
+#include <math.h>
+#define _finite isfinite
 #define _isnan isnan
+#endif
+#define _snprintf snprintf
 #define stricmp strcasecmp
 #define _stricmp strcasecmp
 #define strnicmp strncasecmp
@@ -352,7 +360,7 @@ typedef struct
 
 		CHandle(const CHandle<T,U>& cHandle) : m_Value(cHandle.m_Value){}
 		CHandle(const HandleType cHandle = U) : m_Value(cHandle){}
-		CHandle(const PointerType cpHandle) : m_Value(reinterpret_cast<HandleType>(cpHandle)){}
+		CHandle(const PointerType cpHandle) : m_Value((HandleType)(intptr_t)(cpHandle)){}
 		CHandle(INVALID_HANDLE_VALUE_ENUM) : m_Value(U){}//to be able to use a common value for all InvalidHandle - types
 #if defined(LINUX64)
 		//treat __null tyope also as invalid handle type
@@ -361,13 +369,13 @@ typedef struct
 		operator HandleType(){return m_Value;}
 		bool operator!() const{return m_Value == sciInvalidHandleValue;}
 		const CHandle& operator =(const CHandle& crHandle){m_Value = crHandle.m_Value;return *this;}
-		const CHandle& operator =(const PointerType cpHandle){m_Value = reinterpret_cast<HandleType>(cpHandle);return *this;}
+		const CHandle& operator =(const PointerType cpHandle){m_Value = (HandleType)(intptr_t)(cpHandle);return *this;}
 		const bool operator ==(const CHandle& crHandle)		const{return m_Value == crHandle.m_Value;}
 		const bool operator ==(const HandleType cHandle)	const{return m_Value == cHandle;}
-		const bool operator ==(const PointerType cpHandle)const{return m_Value == reinterpret_cast<HandleType>(cpHandle);}
+		const bool operator ==(const PointerType cpHandle)const{return m_Value == (HandleType)(intptr_t)(cpHandle);}
 		const bool operator !=(const HandleType cHandle)	const{return m_Value != cHandle;}
 		const bool operator !=(const CHandle& crHandle)		const{return m_Value != crHandle.m_Value;}
-		const bool operator !=(const PointerType cpHandle)const{return m_Value != reinterpret_cast<HandleType>(cpHandle);}
+		const bool operator !=(const PointerType cpHandle)const{return m_Value != (HandleType)(intptr_t)(cpHandle);}
 		const bool operator <	(const CHandle& crHandle)		const{return m_Value < crHandle.m_Value;}
 		HandleType Handle()const{return m_Value;}
 

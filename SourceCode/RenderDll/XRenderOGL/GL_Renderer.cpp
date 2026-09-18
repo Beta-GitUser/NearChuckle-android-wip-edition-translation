@@ -552,6 +552,23 @@ bool CGLRenderer::ChangeResolution(int nNewWidth, int nNewHeight, int nNewColDep
 #else
 bool CGLRenderer::ChangeResolution(int nNewWidth, int nNewHeight, int nNewColDepth, int nNewRefreshHZ, bool bFullScreen)
 {
+#ifdef __ANDROID__
+  int winW = 0, winH = 0;
+  if (m_RContexts[0] && m_RContexts[0]->m_Window)
+  {
+    SDL_GetWindowSizeInPixels(m_RContexts[0]->m_Window, &winW, &winH);
+  }
+  if (winW <= 0 || winH <= 0)
+  {
+    winW = (m_width > 0) ? m_width : nNewWidth;
+    winH = (m_height > 0) ? m_height : nNewHeight;
+  }
+  m_width = winW;
+  m_height = winH;
+  m_FullScreen = true;
+  ChangeViewport(0, 0, winW, winH);
+  return true;
+#else
   m_FullScreen = bFullScreen;
   SDL_SetWindowFullscreen(m_RContexts[0]->m_Window, bFullScreen);
   SDL_SetWindowSize(m_RContexts[0]->m_Window, nNewWidth, nNewHeight);
@@ -559,6 +576,7 @@ bool CGLRenderer::ChangeResolution(int nNewWidth, int nNewHeight, int nNewColDep
   SDL_SyncWindow(m_RContexts[0]->m_Window);
   ChangeViewport(0, 0, nNewWidth, nNewHeight);
   return false;
+#endif
 }
 #endif
 
@@ -1149,7 +1167,8 @@ void CGLRenderer::Update()
 #ifndef USE_SDL
     SwapBuffers(m_CurrContext->m_hDC);
 #else
-    SDL_GL_SwapWindow(m_CurrContext->m_Window);
+    if (m_CurrContext && m_CurrContext->m_Window)
+      SDL_GL_SwapWindow(m_CurrContext->m_Window);
 #endif
   }
 
@@ -1682,6 +1701,7 @@ void CGLRenderer::UpdateTextureInVideoMemory(uint tnum, unsigned char *newdata,i
   }
   else
   {
+#if !defined(__ANDROID__) && !defined(__linux)
     if (TargetTex[tnum] == GL_TEXTURE_2D)
     {
       int nw = ilog2(w);
@@ -1691,6 +1711,7 @@ void CGLRenderer::UpdateTextureInVideoMemory(uint tnum, unsigned char *newdata,i
       if (h != nh)
         return;
     }
+#endif
     glTexSubImage2D(TargetTex[tnum],0,posx,posy,w,h,srcformat,GL_UNSIGNED_BYTE,newdata);
   }
 }

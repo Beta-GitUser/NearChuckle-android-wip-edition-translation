@@ -1,0 +1,694 @@
+diff --git a/src/config.h b/src/config.h
+index 2243472..beffb87 100644
+--- a/src/config.h
++++ b/src/config.h
+@@ -16,8 +16,8 @@
+ #define MAX_ARB_MATRIX  8
+ #define MAX_VTX_PROG_ENV_PARAMS 96
+ #define MAX_VTX_PROG_LOC_PARAMS 96
+-#define MAX_FRG_PROG_ENV_PARAMS 24
+-#define MAX_FRG_PROG_LOC_PARAMS 24
++#define MAX_FRG_PROG_ENV_PARAMS 64
++#define MAX_FRG_PROG_LOC_PARAMS 64
+ #define MAX_DRAW_BUFFERS    16
+ 
+ #endif // _GL4ES_MAIN_CONFIG_H
+diff --git a/src/gl/fpe.c b/src/gl/fpe.c
+index 7d53643..97e4a54 100644
+--- a/src/gl/fpe.c
++++ b/src/gl/fpe.c
+@@ -302,11 +302,27 @@ void APIENTRY_GL4ES fpe_oldprogram(fpe_state_t* state) {
+     LOAD_GLES2(glGetProgramInfoLog);
+     GLint status;
+     // There is an old program (either vtx or frg or both)
+-    oldprogram_t* old_vtx = getOldProgram(state->vertex_prg_id);
+-    oldprogram_t* old_frg = getOldProgram(state->fragment_prg_id);
++    oldprogram_t* old_vtx = state->vertex_prg_id ? getOldProgram(state->vertex_prg_id) : NULL;
++    oldprogram_t* old_frg = state->fragment_prg_id ? getOldProgram(state->fragment_prg_id) : NULL;
++
++    if (old_vtx && (!old_vtx->shader || !old_vtx->shader->source)) {
++        old_vtx = NULL;
++    }
++    if (old_frg && (!old_frg->shader || !old_frg->shader->source)) {
++        old_frg = NULL;
++    }
++
++    if (!old_vtx) {
++        state->vertex_prg_id = 0;
++        if (glstate->fpe_state) glstate->fpe_state->vertex_prg_id = 0;
++    }
++    if (!old_frg) {
++        state->fragment_prg_id = 0;
++        if (glstate->fpe_state) glstate->fpe_state->fragment_prg_id = 0;
++    }
+ 
+     glstate->fpe->vert = gl4es_glCreateShader(GL_VERTEX_SHADER);
+-    if(state->vertex_prg_id) {
++    if(state->vertex_prg_id && old_vtx && old_vtx->shader && old_vtx->shader->source) {
+         gl4es_glShaderSource(glstate->fpe->vert, 1, fpe_CustomVertexShader(old_vtx->shader->source, state, state->fragment_prg_id?0:1), NULL);
+         gl4es_glCompileShader(glstate->fpe->vert);
+         gl4es_glGetShaderiv(glstate->fpe->vert, GL_COMPILE_STATUS, &status);
+@@ -321,7 +337,8 @@ void APIENTRY_GL4ES fpe_oldprogram(fpe_state_t* state) {
+         getShader(glstate->fpe->vert)->old = old_vtx;
+     } else {
+         // use fragment need to build default vertex shader
+-        gl4es_glShaderSource(glstate->fpe->vert, 1, fpe_VertexShader(&old_frg->shader->need, state), NULL);
++        shaderconv_need_t* need = (old_frg && old_frg->shader) ? &old_frg->shader->need : NULL;
++        gl4es_glShaderSource(glstate->fpe->vert, 1, fpe_VertexShader(need, state), NULL);
+         gl4es_glCompileShader(glstate->fpe->vert);
+         gl4es_glGetShaderiv(glstate->fpe->vert, GL_COMPILE_STATUS, &status);
+         if(status!=GL_TRUE) {
+@@ -332,7 +349,7 @@ void APIENTRY_GL4ES fpe_oldprogram(fpe_state_t* state) {
+     }
+     gl4es_glAttachShader(glstate->fpe->prog, glstate->fpe->vert);
+     glstate->fpe->frag = gl4es_glCreateShader(GL_FRAGMENT_SHADER);
+-    if(state->fragment_prg_id) {
++    if(state->fragment_prg_id && old_frg && old_frg->shader && old_frg->shader->source) {
+         gl4es_glShaderSource(glstate->fpe->frag, 1, fpe_CustomFragmentShader(old_frg->shader->source, state), NULL);
+         gl4es_glCompileShader(glstate->fpe->frag);
+         gl4es_glGetShaderiv(glstate->fpe->frag, GL_COMPILE_STATUS, &status);
+@@ -347,7 +364,8 @@ void APIENTRY_GL4ES fpe_oldprogram(fpe_state_t* state) {
+         getShader(glstate->fpe->frag)->old = old_frg;
+     } else {
+         // use vertex need to build default fragment shader
+-        gl4es_glShaderSource(glstate->fpe->frag, 1, fpe_FragmentShader(&old_vtx->shader->need, state), NULL);
++        shaderconv_need_t* need = (old_vtx && old_vtx->shader) ? &old_vtx->shader->need : NULL;
++        gl4es_glShaderSource(glstate->fpe->frag, 1, fpe_FragmentShader(need, state), NULL);
+         gl4es_glCompileShader(glstate->fpe->frag);
+         gl4es_glGetShaderiv(glstate->fpe->frag, GL_COMPILE_STATUS, &status);
+         if(status!=GL_TRUE) {
+@@ -457,7 +475,7 @@ program_t* APIENTRY_GL4ES fpe_CustomShader(program_t* glprogram, fpe_state_t* st
+     if(fpe->glprogram==NULL) {
+         GLint status;
+         fpe->vert = gl4es_glCreateShader(GL_VERTEX_SHADER);
+-        gl4es_glShaderSource(fpe->vert, 1, fpe_CustomVertexShader(glprogram->last_vert->source, state, 0), NULL);
++        gl4es_glShaderSource(fpe->vert, 1, fpe_CustomVertexShader((glprogram->last_vert && glprogram->last_vert->source) ? glprogram->last_vert->source : NULL, state, 0), NULL);
+         gl4es_glCompileShader(fpe->vert);
+         gl4es_glGetShaderiv(fpe->vert, GL_COMPILE_STATUS, &status);
+         if(status!=GL_TRUE) {
+@@ -467,7 +485,7 @@ program_t* APIENTRY_GL4ES fpe_CustomShader(program_t* glprogram, fpe_state_t* st
+             return glprogram;   // fallback to non-customized custom program..
+         }
+         fpe->frag = gl4es_glCreateShader(GL_FRAGMENT_SHADER);
+-        gl4es_glShaderSource(fpe->frag, 1, fpe_CustomFragmentShader(glprogram->last_frag->source, state), NULL);
++        gl4es_glShaderSource(fpe->frag, 1, fpe_CustomFragmentShader((glprogram->last_frag && glprogram->last_frag->source) ? glprogram->last_frag->source : NULL, state), NULL);
+         gl4es_glCompileShader(fpe->frag);
+         gl4es_glGetShaderiv(fpe->frag, GL_COMPILE_STATUS, &status);
+         if(status!=GL_TRUE) {
+@@ -544,7 +562,7 @@ program_t* APIENTRY_GL4ES fpe_CustomShader_DefaultVertex(program_t* glprogram, f
+             return glprogram;   // fallback to non-customized custom program..
+         }
+         fpe->frag = gl4es_glCreateShader(GL_FRAGMENT_SHADER);
+-        gl4es_glShaderSource(fpe->frag, 1, fpe_CustomFragmentShader(glprogram->last_frag->source, state_vertex), NULL);
++        gl4es_glShaderSource(fpe->frag, 1, fpe_CustomFragmentShader((glprogram->last_frag && glprogram->last_frag->source) ? glprogram->last_frag->source : NULL, state_vertex), NULL);
+         gl4es_glCompileShader(fpe->frag);
+         gl4es_glGetShaderiv(fpe->frag, GL_COMPILE_STATUS, &status);
+         if(status!=GL_TRUE) {
+@@ -716,10 +734,9 @@ void APIENTRY_GL4ES fpe_glSecondaryColorPointer(GLint size, GLenum type, GLsizei
+     glstate->vao->vertexattrib[ATT_SECONDARY].pointer = pointer;
+     glstate->vao->vertexattrib[ATT_SECONDARY].divisor = 0;
+     glstate->vao->vertexattrib[ATT_SECONDARY].normalized = (type==GL_FLOAT)?GL_FALSE:GL_TRUE;
+-    glstate->vao->vertexattrib[ATT_SECONDARY].real_buffer = 0;
+-    glstate->vao->vertexattrib[ATT_SECONDARY].real_pointer = 0;
+     glstate->vao->vertexattrib[ATT_SECONDARY].buffer = glstate->vao->vertex;
+-
++    glstate->vao->vertexattrib[ATT_SECONDARY].real_buffer = (glstate->vao->vertex)?glstate->vao->vertex->real_buffer:0;
++    glstate->vao->vertexattrib[ATT_SECONDARY].real_pointer = (glstate->vao->vertex)?pointer:0;
+ }
+ 
+ void APIENTRY_GL4ES fpe_glVertexPointer(GLint size, GLenum type, GLsizei stride, const GLvoid *pointer) {
+@@ -730,9 +747,9 @@ void APIENTRY_GL4ES fpe_glVertexPointer(GLint size, GLenum type, GLsizei stride,
+     glstate->vao->vertexattrib[ATT_VERTEX].pointer = pointer;
+     glstate->vao->vertexattrib[ATT_VERTEX].divisor = 0;
+     glstate->vao->vertexattrib[ATT_VERTEX].normalized = GL_FALSE;
+-    glstate->vao->vertexattrib[ATT_VERTEX].real_buffer = 0;
+-    glstate->vao->vertexattrib[ATT_VERTEX].real_pointer = 0;
+     glstate->vao->vertexattrib[ATT_VERTEX].buffer = glstate->vao->vertex;
++    glstate->vao->vertexattrib[ATT_VERTEX].real_buffer = (glstate->vao->vertex)?glstate->vao->vertex->real_buffer:0;
++    glstate->vao->vertexattrib[ATT_VERTEX].real_pointer = (glstate->vao->vertex)?pointer:0;
+ }
+ 
+ void APIENTRY_GL4ES fpe_glColorPointer(GLint size, GLenum type, GLsizei stride, const GLvoid *pointer) {
+@@ -743,9 +760,9 @@ void APIENTRY_GL4ES fpe_glColorPointer(GLint size, GLenum type, GLsizei stride,
+     glstate->vao->vertexattrib[ATT_COLOR].pointer = pointer;
+     glstate->vao->vertexattrib[ATT_COLOR].divisor = 0;
+     glstate->vao->vertexattrib[ATT_COLOR].normalized = (type==GL_FLOAT)?GL_FALSE:GL_TRUE;
+-    glstate->vao->vertexattrib[ATT_COLOR].real_buffer = 0;
+-    glstate->vao->vertexattrib[ATT_COLOR].real_pointer = 0;
+     glstate->vao->vertexattrib[ATT_COLOR].buffer = glstate->vao->vertex;
++    glstate->vao->vertexattrib[ATT_COLOR].real_buffer = (glstate->vao->vertex)?glstate->vao->vertex->real_buffer:0;
++    glstate->vao->vertexattrib[ATT_COLOR].real_pointer = (glstate->vao->vertex)?pointer:0;
+ }
+ 
+ void APIENTRY_GL4ES fpe_glNormalPointer(GLenum type, GLsizei stride, const GLvoid *pointer) {
+@@ -756,9 +773,9 @@ void APIENTRY_GL4ES fpe_glNormalPointer(GLenum type, GLsizei stride, const GLvoi
+     glstate->vao->vertexattrib[ATT_NORMAL].pointer = pointer;
+     glstate->vao->vertexattrib[ATT_NORMAL].divisor = 0;
+     glstate->vao->vertexattrib[ATT_NORMAL].normalized = (type==GL_FLOAT)?GL_FALSE:GL_TRUE;
+-    glstate->vao->vertexattrib[ATT_NORMAL].real_buffer = 0;
+-    glstate->vao->vertexattrib[ATT_NORMAL].real_pointer = 0;
+     glstate->vao->vertexattrib[ATT_NORMAL].buffer = glstate->vao->vertex;
++    glstate->vao->vertexattrib[ATT_NORMAL].real_buffer = (glstate->vao->vertex)?glstate->vao->vertex->real_buffer:0;
++    glstate->vao->vertexattrib[ATT_NORMAL].real_pointer = (glstate->vao->vertex)?pointer:0;
+ }
+ 
+ void APIENTRY_GL4ES fpe_glTexCoordPointer(GLint size, GLenum type, GLsizei stride, const GLvoid *pointer) {
+@@ -773,9 +790,9 @@ void APIENTRY_GL4ES fpe_glTexCoordPointerTMU(GLint size, GLenum type, GLsizei st
+     glstate->vao->vertexattrib[ATT_MULTITEXCOORD0+TMU].pointer = pointer;
+     glstate->vao->vertexattrib[ATT_MULTITEXCOORD0+TMU].divisor = 0;
+     glstate->vao->vertexattrib[ATT_MULTITEXCOORD0+TMU].normalized = GL_FALSE;
+-    glstate->vao->vertexattrib[ATT_MULTITEXCOORD0+TMU].real_buffer = 0;
+-    glstate->vao->vertexattrib[ATT_MULTITEXCOORD0+TMU].real_pointer = 0;
+     glstate->vao->vertexattrib[ATT_MULTITEXCOORD0+TMU].buffer = glstate->vao->vertex;
++    glstate->vao->vertexattrib[ATT_MULTITEXCOORD0+TMU].real_buffer = (glstate->vao->vertex)?glstate->vao->vertex->real_buffer:0;
++    glstate->vao->vertexattrib[ATT_MULTITEXCOORD0+TMU].real_pointer = (glstate->vao->vertex)?pointer:0;
+ }
+ 
+ void APIENTRY_GL4ES fpe_glFogCoordPointer(GLenum type, GLsizei stride, const GLvoid *pointer) {
+@@ -786,9 +803,9 @@ void APIENTRY_GL4ES fpe_glFogCoordPointer(GLenum type, GLsizei stride, const GLv
+     glstate->vao->vertexattrib[ATT_FOGCOORD].pointer = pointer;
+     glstate->vao->vertexattrib[ATT_FOGCOORD].divisor = 0;
+     glstate->vao->vertexattrib[ATT_FOGCOORD].normalized = (type==GL_FLOAT)?GL_FALSE:GL_TRUE;
+-    glstate->vao->vertexattrib[ATT_FOGCOORD].real_buffer = 0;
+-    glstate->vao->vertexattrib[ATT_FOGCOORD].real_pointer = 0;
+     glstate->vao->vertexattrib[ATT_FOGCOORD].buffer = glstate->vao->vertex;
++    glstate->vao->vertexattrib[ATT_FOGCOORD].real_buffer = (glstate->vao->vertex)?glstate->vao->vertex->real_buffer:0;
++    glstate->vao->vertexattrib[ATT_FOGCOORD].real_pointer = (glstate->vao->vertex)?pointer:0;
+ }
+ 
+ void APIENTRY_GL4ES fpe_glEnable(GLenum cap) {
+@@ -821,11 +838,21 @@ void APIENTRY_GL4ES fpe_glDrawElements(GLenum mode, GLsizei count, GLenum type,
+     realize_glenv(mode==GL_POINTS, 0, count, type, indices, &scratch);
+     LOAD_GLES(glDrawElements);
+     int use_vbo = 0;
+-    if(glstate->vao->elements && glstate->vao->elements->real_buffer && indices>=glstate->vao->elements->data && indices<=((void*)((char*)glstate->vao->elements->data+glstate->vao->elements->size))) {
+-        use_vbo = 1;
+-        bindBuffer(GL_ELEMENT_ARRAY_BUFFER, glstate->vao->elements->real_buffer);
+-        indices = (GLvoid*)((uintptr_t)indices - (uintptr_t)(glstate->vao->elements->data));
+-        DBG(printf("Using VBO %d for indices\n", glstate->vao->elements->real_buffer);)
++    if(glstate->vao->elements && glstate->vao->elements->real_buffer) {
++        if(indices>=glstate->vao->elements->data && indices<=((void*)((char*)glstate->vao->elements->data+glstate->vao->elements->size))) {
++            use_vbo = 1;
++            bindBuffer(GL_ELEMENT_ARRAY_BUFFER, glstate->vao->elements->real_buffer);
++            indices = (GLvoid*)((uintptr_t)indices - (uintptr_t)(glstate->vao->elements->data));
++            DBG(printf("Using VBO %d for indices (from pointer -> offset %p)\n", glstate->vao->elements->real_buffer, indices);)
++        } else if((uintptr_t)indices < glstate->vao->elements->size) {
++            use_vbo = 1;
++            bindBuffer(GL_ELEMENT_ARRAY_BUFFER, glstate->vao->elements->real_buffer);
++            DBG(printf("Using VBO %d for indices (direct offset %p)\n", glstate->vao->elements->real_buffer, indices);)
++        } else {
++            bindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
++        }
++    } else {
++        bindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+     }
+     realize_bufferIndex();
+     gles_glDrawElements(mode, count, type, indices);
+@@ -893,10 +920,19 @@ void APIENTRY_GL4ES fpe_glDrawElementsInstanced(GLenum mode, GLsizei count, GLen
+     int use_vbo = 0;
+     void* inds;
+     GLfloat tmp[4] = {0.0f, 0.0f, 0.0f, 1.0f};
+-    if(glstate->vao->elements && glstate->vao->elements->real_buffer && indices>=glstate->vao->elements->data && indices<=((void*)((char*)glstate->vao->elements->data+glstate->vao->elements->size))) {
+-        use_vbo = 1;
+-        bindBuffer(GL_ELEMENT_ARRAY_BUFFER, glstate->vao->elements->real_buffer);
+-        inds = (void*)((uintptr_t)indices - (uintptr_t)(glstate->vao->elements->data));
++    if(glstate->vao->elements && glstate->vao->elements->real_buffer) {
++        if(indices>=glstate->vao->elements->data && indices<=((void*)((char*)glstate->vao->elements->data+glstate->vao->elements->size))) {
++            use_vbo = 1;
++            bindBuffer(GL_ELEMENT_ARRAY_BUFFER, glstate->vao->elements->real_buffer);
++            inds = (void*)((uintptr_t)indices - (uintptr_t)(glstate->vao->elements->data));
++        } else if((uintptr_t)indices < glstate->vao->elements->size) {
++            use_vbo = 1;
++            bindBuffer(GL_ELEMENT_ARRAY_BUFFER, glstate->vao->elements->real_buffer);
++            inds = (void*)indices;
++        } else {
++            inds = (void*)indices;
++            bindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
++        }
+     } else {
+         inds = (void*)indices;
+         bindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+@@ -1401,36 +1437,40 @@ void realize_glenv(int ispoint, int first, int count, GLenum type, const void* i
+         }
+     }
+     // oldprograms
+-    if(glprogram->last_vert && glprogram->last_vert->old) {
+-        if(glprogram->has_vtx_progenv) {
+-            for (int i=0; i<MAX_VTX_PROG_ENV_PARAMS; ++i)
++    if(glprogram->has_vtx_progenv) {
++        for (int i=0; i<MAX_VTX_PROG_ENV_PARAMS; ++i) {
++            if(glprogram->vtx_progenv[i] != -1)
+                 GoUniformfv(glprogram, glprogram->vtx_progenv[i], 4, 1, glstate->glsl->vtx_env_params+i*4);
+         }
+-        if(glprogram->has_vtx_progloc) {
+-            for (int i=0; i<MAX_VTX_PROG_LOC_PARAMS; ++i)
++    }
++    if(glprogram->last_vert && glprogram->last_vert->old && glprogram->has_vtx_progloc) {
++        for (int i=0; i<MAX_VTX_PROG_LOC_PARAMS; ++i) {
++            if(glprogram->vtx_progloc[i] != -1)
+                 GoUniformfv(glprogram, glprogram->vtx_progloc[i], 4, 1, glprogram->last_vert->old->prog_local_params+i*4);
+         }
+     }
+-    if(glprogram->last_frag && glprogram->last_frag->old) {
+-        if(glprogram->has_frg_progenv) {
+-            for (int i=0; i<MAX_FRG_PROG_ENV_PARAMS; ++i)
++    if(glprogram->has_frg_progenv) {
++        for (int i=0; i<MAX_FRG_PROG_ENV_PARAMS; ++i) {
++            if(glprogram->frg_progenv[i] != -1)
+                 GoUniformfv(glprogram, glprogram->frg_progenv[i], 4, 1, glstate->glsl->frg_env_params+i*4);
+         }
+-        if(glprogram->has_frg_progloc) {
+-            for (int i=0; i<MAX_FRG_PROG_LOC_PARAMS; ++i)
++    }
++    if(glprogram->last_frag && glprogram->last_frag->old && glprogram->has_frg_progloc) {
++        for (int i=0; i<MAX_FRG_PROG_LOC_PARAMS; ++i) {
++            if(glprogram->frg_progloc[i] != -1)
+                 GoUniformfv(glprogram, glprogram->frg_progloc[i], 4, 1, glprogram->last_frag->old->prog_local_params+i*4);
+         }
+-        #define GO(A)   \
+-        if(glprogram->has_samplers ## A) {                                      \
+-            for (int i=0; i<MAX_TEX; ++i)                                       \
+-                GoUniformiv(glprogram, glprogram->samplers ## A [i], 1, 1, &i); \
+-        }
+-        GO(1d)
+-        GO(2d)
+-        GO(3d)
+-        GO(Cube)
+-        #undef GO
+     }
++    #define GO(A)   \
++    if(glprogram->has_samplers ## A) {                                      \
++        for (int i=0; i<MAX_TEX; ++i)                                       \
++            GoUniformiv(glprogram, glprogram->samplers ## A [i], 1, 1, &i); \
++    }
++    GO(1d)
++    GO(2d)
++    GO(3d)
++    GO(Cube)
++    #undef GO
+     // set VertexAttrib if needed
+     for(int i=0; i<hardext.maxvattrib; i++) 
+     if(glprogram->va_size[i])   // only check used VA...
+@@ -1742,6 +1782,7 @@ const char* blend_color_code = "_gl4es_BlendColor";
+ int builtin_CheckUniform(program_t *glprogram, char* name, GLint id, int size) {
+     if(strncmp(name, gl4es_code, strlen(gl4es_code)))
+         return 0;   // doesn't start with "_gl4es_", no need to look further
++    LOAD_GLES2(glGetUniformLocation);
+     int builtin = isBuiltinMatrix(name);
+     // check matrices
+     if(builtin!=-1) {
+@@ -1832,18 +1873,19 @@ int builtin_CheckUniform(program_t *glprogram, char* name, GLint id, int size) {
+         glprogram->builtin_instanceID = id;
+         return 1;
+     }
+-    if(strncmp(name, clipplanes_code, strlen(clipplanes_code))==0) {
+-        // it a clip plane! grab it's number
+-        int n = name[strlen(clipplanes_code)]-'0';   // only 6 clip planes, so this works
+-        if(n>=0 && n<hardext.maxplanes) {
+-            glprogram->builtin_clipplanes[n] = id;
++    if(strcmp(name, "_gl4es_ClipPlane")==0 || strncmp(name, clipplanes_code, strlen(clipplanes_code))==0) {
++        if(!glprogram->has_builtin_clipplanes) {
++            int count = (size > 0 && size <= hardext.maxplanes) ? size : hardext.maxplanes;
+             glprogram->has_builtin_clipplanes = 1;
+-            return 1;
++            for (int i=0; i<count; ++i)
++                glprogram->builtin_clipplanes[i] = id+i;
+         }
++        return 1;
+     }
+     if(strncmp(name, clipplanes_fpe_code, strlen(clipplanes_fpe_code))==0) {
+         // it an fpe clip plane! grab it's number
+-        int n = name[strlen(clipplanes_fpe_code)]-'0';   // only 6 clip planes, so this works
++        int l = strlen(clipplanes_fpe_code);
++        int n = atoi(name + l);
+         if(n>=0 && n<hardext.maxplanes) {
+             glprogram->builtin_clipplanes[n] = id;
+             glprogram->has_builtin_clipplanes = 1;
+@@ -1877,22 +1919,22 @@ int builtin_CheckUniform(program_t *glprogram, char* name, GLint id, int size) {
+     if(strncmp(name, texenvcolor_code, strlen(texenvcolor_code))==0) {
+         // it a TexEnvColor! grab it's number
+         int l = strlen(texenvcolor_code);
+-        int n = name[l]-'0';
+-        if(name[l+1]>='0' && name[l+1]<='9')
+-            n = n*10 + name[l+1]-'0';
++        int n = atoi(name + l);
+         if(n>=0 && n<hardext.maxtex) {
+             glprogram->builtin_texenvcolor[n] = id;
+             glprogram->has_builtin_texenv = 1;
+             return 1;
+         }
+     }
+-    /*if(strcmp(name, texenvcolor_noa_code)==0) {
+-        // it a TexEnvColor, without the array, so full size
+-        for (int n=0; n<size; n++)
+-            glprogram->builtin_texenvcolor[n] = id;
+-        glprogram->has_builtin_texenv = 1;
++    if(strcmp(name, texenvcolor_noa_code)==0) {
++        if(!glprogram->has_builtin_texenv) {
++            int count = (size > 0 && size <= hardext.maxtex) ? size : hardext.maxtex;
++            glprogram->has_builtin_texenv = 1;
++            for (int n=0; n<count; n++)
++                glprogram->builtin_texenvcolor[n] = id + n;
++        }
+         return 1;
+-    }*/
++    }
+     if(strncmp(name, texgeneyestart_code, strlen(texgeneyestart_code))==0) {
+         for (int i=0; i<4; i++) {
+             char tmp[100];
+@@ -2048,90 +2090,134 @@ int builtin_CheckUniform(program_t *glprogram, char* name, GLint id, int size) {
+         return 1;
+     }
+     // oldprogram
+-    if(strncmp(name, vtx_progenv_arr, strlen(vtx_progenv_arr))==0) {
+-        int l = strlen(vtx_progenv_arr);
+-        int n = name[l]-'0';
+-        if(name[l+1]>='0' && name[l+1]<='9')
+-            n = n*10 + name[l+1]-'0';
++    if(strcmp(name, "_gl4es_Vertex_ProgramEnv")==0) {
+         glprogram->has_vtx_progenv = 1;
+-        for (int i=0; i<n; ++i)
+-            glprogram->vtx_progenv[i] = id+i;
++        glprogram->vtx_progenv[0] = id;
++        if(gles_glGetUniformLocation) {
++            for (int i=1; i<MAX_VTX_PROG_ENV_PARAMS; ++i) {
++                char elem_name[64];
++                sprintf(elem_name, "_gl4es_Vertex_ProgramEnv[%d]", i);
++                GLint loc = gles_glGetUniformLocation(glprogram->id, elem_name);
++                glprogram->vtx_progenv[i] = (loc != -1) ? loc : (id + i);
++            }
++        }
+         return 1;
+     }
++    if(strncmp(name, vtx_progenv_arr, strlen(vtx_progenv_arr))==0) {
++        int idx = atoi(name + strlen(vtx_progenv_arr));
++        if(idx>=0 && idx<MAX_VTX_PROG_ENV_PARAMS) {
++            glprogram->has_vtx_progenv = 1;
++            glprogram->vtx_progenv[idx] = id;
++            return 1;
++        }
++    }
+     if(strncmp(name, vtx_progenv_noa, strlen(vtx_progenv_noa))==0) {
+         int l = strlen(vtx_progenv_noa);
+-        int n = name[l]-'0';
+-        if(name[l+1]>='0' && name[l+1]<='9')
+-            n = n*10 + name[l+1]-'0';
+-        glprogram->has_vtx_progenv = 1;
+-        glprogram->vtx_progenv[n] = id;
+-        return 1;
++        int n = atoi(name + l);
++        if(n>=0 && n<MAX_VTX_PROG_ENV_PARAMS) {
++            glprogram->has_vtx_progenv = 1;
++            glprogram->vtx_progenv[n] = id;
++            return 1;
++        }
+     }
+-    if(strncmp(name, vtx_progloc_arr, strlen(vtx_progloc_arr))==0) {
+-        int l = strlen(vtx_progloc_arr);
+-        int n = name[l]-'0';
+-        if(name[l+1]>='0' && name[l+1]<='9')
+-            n = n*10 + name[l+1]-'0';
++    if(strcmp(name, "_gl4es_Vertex_ProgramLocal")==0) {
+         glprogram->has_vtx_progloc = 1;
+-        for (int i=0; i<n; ++i)
+-            glprogram->vtx_progloc[i] = id+i;
++        glprogram->vtx_progloc[0] = id;
++        if(gles_glGetUniformLocation) {
++            for (int i=1; i<MAX_VTX_PROG_LOC_PARAMS; ++i) {
++                char elem_name[64];
++                sprintf(elem_name, "_gl4es_Vertex_ProgramLocal[%d]", i);
++                GLint loc = gles_glGetUniformLocation(glprogram->id, elem_name);
++                glprogram->vtx_progloc[i] = (loc != -1) ? loc : (id + i);
++            }
++        }
+         return 1;
+     }
++    if(strncmp(name, vtx_progloc_arr, strlen(vtx_progloc_arr))==0) {
++        int idx = atoi(name + strlen(vtx_progloc_arr));
++        if(idx>=0 && idx<MAX_VTX_PROG_LOC_PARAMS) {
++            glprogram->has_vtx_progloc = 1;
++            glprogram->vtx_progloc[idx] = id;
++            return 1;
++        }
++    }
+     if(strncmp(name, vtx_progloc_noa, strlen(vtx_progloc_noa))==0) {
+         int l = strlen(vtx_progloc_noa);
+-        int n = name[l]-'0';
+-        if(name[l+1]>='0' && name[l+1]<='9')
+-            n = n*10 + name[l+1]-'0';
+-        glprogram->has_vtx_progloc = 1;
+-        glprogram->vtx_progloc[n] = id;
+-        return 1;
++        int n = atoi(name + l);
++        if(n>=0 && n<MAX_VTX_PROG_LOC_PARAMS) {
++            glprogram->has_vtx_progloc = 1;
++            glprogram->vtx_progloc[n] = id;
++            return 1;
++        }
+     }
+-    if(strncmp(name, frg_progenv_arr, strlen(frg_progenv_arr))==0) {
+-        int l = strlen(frg_progenv_arr);
+-        int n = name[l]-'0';
+-        if(name[l+1]>='0' && name[l+1]<='9')
+-            n = n*10 + name[l+1]-'0';
++    if(strcmp(name, "_gl4es_Fragment_ProgramEnv")==0) {
+         glprogram->has_frg_progenv = 1;
+-        for (int i=0; i<n; ++i)
+-            glprogram->frg_progenv[i] = id+i;
++        glprogram->frg_progenv[0] = id;
++        if(gles_glGetUniformLocation) {
++            for (int i=1; i<MAX_FRG_PROG_ENV_PARAMS; ++i) {
++                char elem_name[64];
++                sprintf(elem_name, "_gl4es_Fragment_ProgramEnv[%d]", i);
++                GLint loc = gles_glGetUniformLocation(glprogram->id, elem_name);
++                glprogram->frg_progenv[i] = (loc != -1) ? loc : (id + i);
++            }
++        }
+         return 1;
+     }
++    if(strncmp(name, frg_progenv_arr, strlen(frg_progenv_arr))==0) {
++        int idx = atoi(name + strlen(frg_progenv_arr));
++        if(idx>=0 && idx<MAX_FRG_PROG_ENV_PARAMS) {
++            glprogram->has_frg_progenv = 1;
++            glprogram->frg_progenv[idx] = id;
++            return 1;
++        }
++    }
+     if(strncmp(name, frg_progenv_noa, strlen(frg_progenv_noa))==0) {
+         int l = strlen(frg_progenv_noa);
+-        int n = name[l]-'0';
+-        if(name[l+1]>='0' && name[l+1]<='9')
+-            n = n*10 + name[l+1]-'0';
+-        glprogram->has_frg_progenv = 1;
+-        glprogram->frg_progenv[n] = id;
+-        return 1;
++        int n = atoi(name + l);
++        if(n>=0 && n<MAX_FRG_PROG_ENV_PARAMS) {
++            glprogram->has_frg_progenv = 1;
++            glprogram->frg_progenv[n] = id;
++            return 1;
++        }
+     }
+-    if(strncmp(name, frg_progloc_arr, strlen(frg_progloc_arr))==0) {
+-        int l = strlen(frg_progloc_arr);
+-        int n = name[l]-'0';
+-        if(name[l+1]>='0' && name[l+1]<='9')
+-            n = n*10 + name[l+1]-'0';
++    if(strcmp(name, "_gl4es_Fragment_ProgramLocal")==0) {
+         glprogram->has_frg_progloc = 1;
+-        for (int i=0; i<n; ++i)
+-            glprogram->frg_progloc[i] = id+i;
++        glprogram->frg_progloc[0] = id;
++        if(gles_glGetUniformLocation) {
++            for (int i=1; i<MAX_FRG_PROG_LOC_PARAMS; ++i) {
++                char elem_name[64];
++                sprintf(elem_name, "_gl4es_Fragment_ProgramLocal[%d]", i);
++                GLint loc = gles_glGetUniformLocation(glprogram->id, elem_name);
++                glprogram->frg_progloc[i] = (loc != -1) ? loc : (id + i);
++            }
++        }
+         return 1;
+     }
++    if(strncmp(name, frg_progloc_arr, strlen(frg_progloc_arr))==0) {
++        int idx = atoi(name + strlen(frg_progloc_arr));
++        if(idx>=0 && idx<MAX_FRG_PROG_LOC_PARAMS) {
++            glprogram->has_frg_progloc = 1;
++            glprogram->frg_progloc[idx] = id;
++            return 1;
++        }
++    }
+     if(strncmp(name, frg_progloc_noa, strlen(frg_progloc_noa))==0) {
+         int l = strlen(frg_progloc_noa);
+-        int n = name[l]-'0';
+-        if(name[l+1]>='0' && name[l+1]<='9')
+-            n = n*10 + name[l+1]-'0';
+-        glprogram->has_frg_progloc = 1;
+-        glprogram->frg_progloc[n] = id;
+-        return 1;
++        int n = atoi(name + l);
++        if(n>=0 && n<MAX_FRG_PROG_LOC_PARAMS) {
++            glprogram->has_frg_progloc = 1;
++            glprogram->frg_progloc[n] = id;
++            return 1;
++        }
+     }
+     #define GO(A)   \
+     if(strncmp(name, samplers ## A ## _noa, strlen(samplers ## A ## _noa))==0) {    \
+         int l = strlen(samplers ## A ## _noa);                                      \
+-        int n = name[l]-'0';                                                        \
+-        if(name[l+1]>='0' && name[l+1]<='9')                                        \
+-            n = n*10 + name[l+1]-'0';                                               \
+-        glprogram->has_samplers ## A = 1;                                           \
+-        glprogram->samplers ## A [n] = id;                                          \
++        int n = atoi(name + l);                                                     \
++        if(n>=0 && n<MAX_TEX) {                                                     \
++            glprogram->has_samplers ## A = 1;                                       \
++            glprogram->samplers ## A [n] = id;                                      \
++        }                                                                           \
+         return 1;                                                                   \
+     }
+     GO(1d)
+diff --git a/src/gl/fpe_shader.c b/src/gl/fpe_shader.c
+index dc7ebb1..8b64a7a 100644
+--- a/src/gl/fpe_shader.c
++++ b/src/gl/fpe_shader.c
+@@ -1631,6 +1631,9 @@ const char* const* fpe_FragmentShader(shaderconv_need_t* need, fpe_state_t *stat
+ 
+ const char* const* fpe_CustomVertexShader(const char* initial, fpe_state_t* state, int default_fragment)
+ {
++    if (!initial) {
++        return fpe_VertexShader(NULL, state);
++    }
+     int planes = state->plane;
+     char buff[1024];
+     if(!shad_cap) shad_cap = 1024;
+@@ -1695,6 +1698,9 @@ if(default_fragment) printf("fpe_CustomVertexShader(%p, %p, %d)\n%s\ncolor=%d\n"
+ }
+ const char* const* fpe_CustomFragmentShader(const char* initial, fpe_state_t* state)
+ {
++    if (!initial) {
++        return fpe_FragmentShader(NULL, state);
++    }
+     // the shader is unconverted yet!
+     if(!shad_cap) shad_cap = 1024;
+     if(!shad) shad = (char*)malloc(shad_cap);
+diff --git a/src/gl/oldprogram.c b/src/gl/oldprogram.c
+index 39aa58a..104a165 100644
+--- a/src/gl/oldprogram.c
++++ b/src/gl/oldprogram.c
+@@ -148,6 +148,10 @@ void APIENTRY_GL4ES gl4es_glProgramStringARB(GLenum target, GLenum format, GLsiz
+         errorShim(GL_INVALID_ENUM);
+         return;
+     }
++    if(!old) {
++        errorShim(GL_INVALID_OPERATION);
++        return;
++    }
+     if(old->string)
+         free(old->string);
+     // grab the new program
+@@ -291,11 +295,21 @@ void APIENTRY_GL4ES gl4es_glBindProgramARB(GLenum target, GLuint program) {
+ 
+ void APIENTRY_GL4ES gl4es_glDeleteProgramsARB(GLsizei n, const GLuint *programs) {
+     DBG(printf("glDeleteProgramsARB(%d, %p)\n", n, programs);)
+-    //TODO, unbind if binded?
++    if(!glstate || !glstate->glsl) return;
+     khint_t k;
+     kh_oldprograms_t * oldprograms = glstate->glsl->oldprograms;
+     for (int i=0; i<n; ++i) {
+         GLuint id = programs[i];
++        if (glstate->fpe_state) {
++            if (glstate->fpe_state->vertex_prg_id == id)
++                glstate->fpe_state->vertex_prg_id = 0;
++            if (glstate->fpe_state->fragment_prg_id == id)
++                glstate->fpe_state->fragment_prg_id = 0;
++        }
++        if (glstate->glsl->vtx_prog && glstate->glsl->vtx_prog->id == id)
++            glstate->glsl->vtx_prog = NULL;
++        if (glstate->glsl->frg_prog && glstate->glsl->frg_prog->id == id)
++            glstate->glsl->frg_prog = NULL;
+         k = kh_get(oldprograms, oldprograms, id);
+         if(k!=kh_end(oldprograms)) {
+             freeOldProgram(kh_value(oldprograms, k));
+diff --git a/src/gl/program.c b/src/gl/program.c
+index 2eaeb02..5d0be90 100644
+--- a/src/gl/program.c
++++ b/src/gl/program.c
+@@ -558,38 +558,48 @@ static void fill_program(program_t *glprogram)
+             // remove any ending "[]" that could be present
+             if(name[strlen(name)-1]==']' && strrchr(name, '[')) (*strrchr(name, '['))='\0';
+             GLint id = gles_glGetUniformLocation(glprogram->id, name);
++            if(id == -1 && size > 1) {
++                char name0[strlen(name) + 8];
++                sprintf(name0, "%s[0]", name);
++                id = gles_glGetUniformLocation(glprogram->id, name0);
++            }
+             if(id!=-1) {
+                 for (int j = 0; j<size; j++) {
+-                    k = kh_put(uniformlist, uniforms, id, &ret);
++                    GLint cur_id = id;
++                    char* cur_name = NULL;
++                    if(j) {
++                        cur_name = malloc(strlen(name)+1+16);
++                        sprintf(cur_name, "%s[%d]", name, j);
++                        cur_id = gles_glGetUniformLocation(glprogram->id, cur_name);
++                        if(cur_id == -1) cur_id = id + j;
++                    } else {
++                        cur_name = strdup(name);
++                    }
++                    k = kh_put(uniformlist, uniforms, cur_id, &ret);
+                     gluniform = kh_value(uniforms, k) = malloc(sizeof(uniform_t));
+                     memset(gluniform, 0, sizeof(uniform_t));
+-                    if(j) {
+-                        gluniform->name = malloc(strlen(name)+1+5);
+-                        sprintf(gluniform->name, "%s[%d]", name, j);
+-                    } else
+-                        gluniform->name = strdup(name);
+-                    gluniform->id = id;
++                    gluniform->name = cur_name;
++                    gluniform->id = cur_id;
+                     gluniform->internal_id = i;
+                     gluniform->size = size-j;
+                     gluniform->type = type;
+                     gluniform->cache_offs = uniform_cache+j*uniformsize(type);
+                     gluniform->cache_size = uniformsize(type)*(size-j);
+-                    gluniform->builtin = builtin_CheckUniform(glprogram, name, id, size-j);
++                    gluniform->builtin = builtin_CheckUniform(glprogram, cur_name, cur_id, size-j);
+                     // TextureUnit grabbing...
+                     if(type==GL_SAMPLER_CUBE) {
+-                        glprogram->texunits[tu_idx].id = id;
++                        glprogram->texunits[tu_idx].id = cur_id;
+                         glprogram->texunits[tu_idx].type=TU_CUBE;
+                         glprogram->texunits[tu_idx].req_tu = glprogram->texunits[tu_idx].act_tu = 0;
+                         ++tu_idx;
+                     } else if (type==GL_SAMPLER_2D) {
+-                        glprogram->texunits[tu_idx].id = id;
++                        glprogram->texunits[tu_idx].id = cur_id;
+                         glprogram->texunits[tu_idx].type=TU_TEX2D;
+                         glprogram->texunits[tu_idx].req_tu = glprogram->texunits[tu_idx].act_tu = 0;
+                         ++tu_idx;
+                     }
+-                    DBG(printf(" uniform #%d : \"%s\"%s type=%s size=%d\n", id, gluniform->name, gluniform->builtin?" (builtin) ":"", PrintEnum(gluniform->type), gluniform->size);)
++                    DBG(printf(" uniform #%d : \"%s\"%s type=%s size=%d\n", cur_id, gluniform->name, gluniform->builtin?" (builtin) ":"", PrintEnum(gluniform->type), gluniform->size);)
+                     if(gluniform->size==1) ++glprogram->num_uniform;
+-                    id++;
+                 }
+                 uniform_cache += uniformsize(type)*size;
+             }
+diff --git a/src/gl/uniform.c b/src/gl/uniform.c
+index 98b5614..449dc63 100644
+--- a/src/gl/uniform.c
++++ b/src/gl/uniform.c
+@@ -176,6 +176,12 @@ void GoUniformfv(program_t *glprogram, GLint location, int size, int count, cons
+     uniform_t *m;
+     k = kh_get(uniformlist, glprogram->uniform, location);
+     if (k==kh_end(glprogram->uniform)) {
++        LOAD_GLES2(glUniform4fv);
++        if (gles_glUniform4fv && size == 4 && count > 0) {
++            gles_glUniform4fv(location, count, value);
++            noerrorShim();
++            return;
++        }
+         errorShim(GL_INVALID_OPERATION);
+         return;
+     }

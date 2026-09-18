@@ -1957,7 +1957,7 @@ void CSoundSystem::GetMemoryUsage(class ICrySizer* pSizer)
 #endif
 
 		//CS_GetMemoryStats(&nCurrentAlloced, &nMaxAlloced);
-		if (!pSizer->AddObject(&CS_Init, nCurrentAlloced))
+		if (!pSizer->AddObject((const void*)(uintptr_t)&CS_Init, nCurrentAlloced))
 			return;
 	}
 }

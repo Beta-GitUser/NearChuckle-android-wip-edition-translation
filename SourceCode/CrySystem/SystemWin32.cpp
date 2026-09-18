@@ -46,6 +46,12 @@
 #ifdef __linux
 #include <unistd.h>
 #endif
+#ifdef __ANDROID__
+#include <android/log.h>
+#endif
+#ifndef WIN32
+#include <SDL3/SDL.h>
+#endif
 
 // this is the list of modules that can be loaded into the game process
 // Each array element contains 2 strings: the name of the module (case-insensitive)
@@ -259,7 +265,13 @@ const char *CSystem::GetUserName()
 #ifndef __linux
 	::GetUserName(szNameBuffer, &dwSize);
 #else
-	strncpy(szNameBuffer, getenv("USER"), dwSize);
+	const char* user = getenv("USER");
+	if (!user || !user[0])
+		user = getenv("LOGNAME");
+	if (!user || !user[0])
+		user = "FarCryPlayer";
+	strncpy(szNameBuffer, user, dwSize - 1);
+	szNameBuffer[dwSize - 1] = '\0';
 #endif
 	return szNameBuffer;
 }
@@ -899,6 +911,25 @@ void CSystem::Error( const char *format,... )
 		::MessageBox( NULL,szBuffer,"CryEngine Error",MB_OK|MB_ICONERROR|MB_SYSTEMMODAL );
 	// Dump callstack.
 	DebugCallStack::instance()->LogCallstack();
+#else
+#ifdef __ANDROID__
+	__android_log_print(ANDROID_LOG_ERROR, "CrySystem", "%s", szBuffer);
+	FILE* fCrash = fopen("/data/data/com.nearchuckle.farcry/files/last_crash.txt", "w");
+	if (!fCrash)
+		fCrash = fopen("/data/user/0/com.nearchuckle.farcry/files/last_crash.txt", "w");
+	if (fCrash)
+	{
+		fprintf(fCrash, "================================================================\n");
+		fprintf(fCrash, "FAR CRY CRITICAL ENGINE ERROR\n");
+		fprintf(fCrash, "================================================================\n\n");
+		fprintf(fCrash, "%s\n\n", szBuffer);
+		if (szSysErrorMessage)
+			fprintf(fCrash, "Last System Error: %s\n\n", szSysErrorMessage);
+		fclose(fCrash);
+	}
+#endif
+	if (!bHandled)
+		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "CryEngine Error", szBuffer, nullptr);
 #endif
 #ifndef PS2
   ::OutputDebugString(szBuffer);

@@ -860,7 +860,8 @@ bool C3DEngine::PhysicalizeStaticObject(void *pForeignData,int iForeignData,int 
 	if (!m_pTerrain || !m_pObjManager)
 		return false;
 
-	int ix=(int)pForeignData&0xFF, iy=(int)pForeignData>>8&0xFF, iobj=(int)pForeignData>>16&0xFFFF;
+	intptr_t fd = (intptr_t)pForeignData;
+	int ix=(int)(fd&0xFF), iy=(int)((fd>>8)&0xFF), iobj=(int)((fd>>16)&0xFFFF);
 	return 0;//m_pObjManager->PhysicalizeStatObjInst( &m_pTerrain->m_arrSecInfoTable[ix][iy]->m_lstStatObjects[iobj], true );
 }
 
