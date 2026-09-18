@@ -36,22 +36,23 @@ static MoviePlayerData* CreatePlayerData(const char* filename)
 	MoviePlayerData* player = new MoviePlayerData();
 	uint32_t w = 0, h = 0;
 	ILog* iLog = GetISystem()->GetILog();
-	ICryPak* iPak = GetISystem()->GetIPak();
-	char* corrected = (char*)alloca(strlen(filename) + 3);
 	player->looping = 0;
 
-	char resolved[1024] = {0};
-	if (iPak)
+	char normalized[1024];
+	strncpy(normalized, filename, sizeof(normalized) - 1);
+	normalized[sizeof(normalized) - 1] = 0;
+	for (char* p = normalized; *p; ++p)
 	{
-		const char* pAdj = iPak->AdjustFileName(filename, resolved, 0);
-		if (pAdj && pAdj[0])
-		{
-			player->binkHandle = Bink_Open(pAdj);
-		}
+		if (*p == '\\') *p = '/';
 	}
-	if (!player->binkHandle.isValid && casepath(filename, corrected))
+	char* corrected = (char*)alloca(strlen(normalized) + 3);
+	if (casepath(normalized, corrected))
 	{
 		player->binkHandle = Bink_Open( corrected );
+	}
+	if (!player->binkHandle.isValid)
+	{
+		player->binkHandle = Bink_Open( normalized );
 	}
 	if (!player->binkHandle.isValid)
 	{

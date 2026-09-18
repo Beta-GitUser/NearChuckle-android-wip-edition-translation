@@ -551,6 +551,21 @@ char *mfLoadCG(char *prog_text)
           sanitizedProg.replace(optPos, strlen("OPTION ARB_fragment_program_shadow;"), "# OPTION ARB_fragment_program_shadow;");
           bModified = true;
         }
+
+        // Replace unsupported shadow samplers (SHADOW2D, SHADOWRECT, SHADOW1D) with 2D
+        static const char* s_shadowSamplers[] = { "SHADOW2D", "SHADOWRECT", "SHADOW1D", NULL };
+        for (int k = 0; s_shadowSamplers[k]; ++k)
+        {
+          size_t sPos = 0;
+          size_t sLen = strlen(s_shadowSamplers[k]);
+          while ((sPos = sanitizedProg.find(s_shadowSamplers[k], sPos)) != std::string::npos)
+          {
+            sanitizedProg.replace(sPos, sLen, "2D");
+            sPos += 2;
+            bModified = true;
+          }
+        }
+
         if (bModified)
           pProgToLoad = sanitizedProg.c_str();
       }
