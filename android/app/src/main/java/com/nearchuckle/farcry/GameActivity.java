@@ -88,11 +88,28 @@ public class GameActivity extends SDLActivity {
             }
         }
 
-        // 3. Preload libc++_shared so native dependencies are resolved
+        // Configure gl4es (desktop OpenGL 2.1 translation to GLES)
+        try {
+            Os.setenv("LIBGL_ES", "2", true);
+            Os.setenv("LIBGL_GL", "21", true);
+            Os.setenv("LIBGL_NPOT", "3", true);
+            Os.setenv("LIBGL_NOBANNER", "1", true);
+            Os.setenv("LIBGL_NORMALIZE", "1", true);
+        } catch (ErrnoException e) {
+            Log.e(TAG, "Failed setting gl4es environment variables", e);
+        }
+
+        // 3. Preload libc++_shared and libGL so native dependencies are resolved
         try {
             System.loadLibrary("c++_shared");
         } catch (Throwable t) {
             Log.w(TAG, "libc++_shared pre-load: " + t.getMessage());
+        }
+        try {
+            System.loadLibrary("GL");
+            Log.i(TAG, "libGL.so (gl4es) pre-loaded successfully.");
+        } catch (Throwable t) {
+            Log.w(TAG, "libGL pre-load: " + t.getMessage());
         }
 
         // 4. Configure Turnip / Custom Vulkan driver via adrenotools

@@ -184,10 +184,35 @@ if [ ! -f "$DEPS_PREFIX/lib/libopenal.so" ]; then
     cmake --build "$DEPS_ROOT/build-openal-$ABI" --target install -- -j"$NPROC"
 fi
 
-# Remove any obsolete stub libGL.so from deps so it cannot be linked
-rm -f "$DEPS_PREFIX/lib/libGL.so" 2>/dev/null || true
+# 5. Build gl4es (OpenGL 2.1 / ARB shader translation on OpenGL ES)
+if [ ! -f "$DEPS_PREFIX/lib/libGL.so" ]; then
+    echo "--> Building gl4es for $ABI..."
+    if [ ! -d "$SRC_CACHE/gl4es" ]; then
+        git clone --depth 1 https://github.com/ptitSeb/gl4es "$SRC_CACHE/gl4es"
+    fi
+    cmake -B "$DEPS_ROOT/build-gl4es-$ABI" -S "$SRC_CACHE/gl4es" \
+        -DCMAKE_TOOLCHAIN_FILE="$TOOLCHAIN_FILE" \
+        -DANDROID_ABI="$ABI" \
+        -DANDROID_PLATFORM=android-24 \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_INSTALL_PREFIX="$DEPS_PREFIX" \
+        -DANDROID=1 \
+        -DNOX11=1 \
+        -DDEFAULT_ES=2 \
+        -DSTATICLIB=OFF
+    cmake --build "$DEPS_ROOT/build-gl4es-$ABI" -- -j"$NPROC"
+    mkdir -p "$DEPS_PREFIX/lib"
+    GL4ES_SO=$(find "$DEPS_ROOT/build-gl4es-$ABI" "$SRC_CACHE/gl4es" -name "libGL.so*" -type f 2>/dev/null | head -n 1)
+    if [ -n "$GL4ES_SO" ] && [ -f "$GL4ES_SO" ]; then
+        cp -f "$GL4ES_SO" "$DEPS_PREFIX/lib/libGL.so"
+        echo "Successfully built and deployed gl4es libGL.so from $GL4ES_SO!"
+    else
+        echo "ERROR: Failed to find built libGL.so from gl4es!"
+        exit 1
+    fi
+fi
 
-# 5. Build NearChuckle Engine
+# 6. Build NearChuckle Engine
 echo "=== STEP: CMAKE CONFIGURE ENGINE ==="
 BUILD_DIR="$ROOT_DIR/build_android/$ABI"
 mkdir -p "$BUILD_DIR"
@@ -246,12 +271,18 @@ find "$BUILD_DIR" -name "*.so" -exec cp -L -f {} "$JNI_LIBS_DIR/" \; 2>/dev/null
 find "$ROOT_DIR/bin" -name "*.so" -exec cp -L -f {} "$JNI_LIBS_DIR/" \; 2>/dev/null || true
 rm -f "$JNI_LIBS_DIR"/*.so.* 2>/dev/null || true
 
-# Remove dummy stub libGL.so so it does not conflict with Android/Mesa GL loader
-rm -f "$JNI_LIBS_DIR/libGL.so"
+# Ensure libGL.so (gl4es) is present in jniLibs
+if [ -f "$DEPS_PREFIX/lib/libGL.so" ]; then
+    cp -f "$DEPS_PREFIX/lib/libGL.so" "$JNI_LIBS_DIR/libGL.so"
+fi
 
 # Verify critical libraries exist
 if [ ! -f "$JNI_LIBS_DIR/libc++_shared.so" ]; then
     echo "ERROR: libc++_shared.so is missing from $JNI_LIBS_DIR!"
+    exit 1
+fi
+if [ ! -f "$JNI_LIBS_DIR/libGL.so" ]; then
+    echo "ERROR: libGL.so (gl4es) is missing from $JNI_LIBS_DIR!"
     exit 1
 fi
 if [ ! -f "$JNI_LIBS_DIR/libFarCry.so" ]; then

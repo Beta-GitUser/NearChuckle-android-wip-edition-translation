@@ -111,6 +111,10 @@ jobs:
             echo "::error::libSDL3.so is missing from APK!"
             exit 1
           fi
+          if ! unzip -l "$APK_PATH" | grep -q "libGL.so"; then
+            echo "::error::libGL.so (gl4es) is missing from APK!"
+            exit 1
+          fi
           echo "All critical native libraries successfully verified in APK!"
 
       - name: Upload APK Artifact

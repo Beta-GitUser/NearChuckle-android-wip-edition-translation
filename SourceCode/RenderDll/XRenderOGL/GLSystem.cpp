@@ -293,6 +293,23 @@ bool CGLRenderer::FindExt( const char* Name )
   return false;
 }
 
+#ifdef __linux
+static void* s_glHandles[5] = { nullptr, nullptr, nullptr, nullptr, nullptr };
+static bool s_handlesInited = false;
+static void EnsureGLHandlesLoaded()
+{
+  if (!s_handlesInited)
+  {
+    s_handlesInited = true;
+    s_glHandles[0] = dlopen("libGL.so", RTLD_NOW | RTLD_GLOBAL);
+    s_glHandles[1] = dlopen("libGL.so.1", RTLD_NOW | RTLD_GLOBAL);
+    s_glHandles[2] = dlopen("libGLESv3.so", RTLD_NOW | RTLD_GLOBAL);
+    s_glHandles[3] = dlopen("libGLESv2.so", RTLD_NOW | RTLD_GLOBAL);
+    s_glHandles[4] = dlopen("libGLESv1_CM.so", RTLD_NOW | RTLD_GLOBAL);
+  }
+}
+#endif
+
 void CGLRenderer::FindProc( void*& ProcAddress, char* Name, char* SupportName, byte& Supports, bool AllowExt )
 {
   if (Name[0] == 'p')
@@ -303,6 +320,14 @@ void CGLRenderer::FindProc( void*& ProcAddress, char* Name, char* SupportName, b
   if( !ProcAddress )
     ProcAddress = GetProcAddress( (HINSTANCE)m_hLibHandleGDI, Name );
 #else
+#ifdef __linux
+  EnsureGLHandlesLoaded();
+  // Check libGL.so first if available (e.g. gl4es desktop GL translation)
+  if (!ProcAddress && s_glHandles[0])
+    ProcAddress = ::dlsym(s_glHandles[0], Name);
+  if (!ProcAddress && s_glHandles[1])
+    ProcAddress = ::dlsym(s_glHandles[1], Name);
+#endif
   if (!ProcAddress)
     ProcAddress = (void *)(uintptr_t)SDL_GL_GetProcAddress( Name );
 #ifdef __linux
@@ -310,18 +335,7 @@ void CGLRenderer::FindProc( void*& ProcAddress, char* Name, char* SupportName, b
     ProcAddress = ::dlsym(RTLD_DEFAULT, Name);
   if (!ProcAddress)
   {
-    static void* s_glHandles[5] = { nullptr, nullptr, nullptr, nullptr, nullptr };
-    static bool s_handlesInited = false;
-    if (!s_handlesInited)
-    {
-      s_handlesInited = true;
-      s_glHandles[0] = dlopen("libGL.so", RTLD_LAZY | RTLD_GLOBAL);
-      s_glHandles[1] = dlopen("libGL.so.1", RTLD_LAZY | RTLD_GLOBAL);
-      s_glHandles[2] = dlopen("libGLESv3.so", RTLD_LAZY | RTLD_GLOBAL);
-      s_glHandles[3] = dlopen("libGLESv2.so", RTLD_LAZY | RTLD_GLOBAL);
-      s_glHandles[4] = dlopen("libGLESv1_CM.so", RTLD_LAZY | RTLD_GLOBAL);
-    }
-    for (int i = 0; i < 5; ++i)
+    for (int i = 2; i < 5; ++i)
     {
       if (s_glHandles[i])
       {
@@ -2176,6 +2190,26 @@ exr:
     return NULL;
   }
   m_CurrContext = rc;
+#endif
+
+#ifdef __linux
+  // If gl4es is available, wire its proc address loader and initialize the state for the active context
+  EnsureGLHandlesLoaded();
+  void* hGL = s_glHandles[0] ? s_glHandles[0] : RTLD_DEFAULT;
+  typedef void (*pfn_set_getprocaddress)(void*(*)(const char*));
+  pfn_set_getprocaddress p_set_getprocaddress = (pfn_set_getprocaddress)::dlsym(hGL, "set_getprocaddress");
+  if (p_set_getprocaddress)
+  {
+    p_set_getprocaddress((void*(*)(const char*))SDL_GL_GetProcAddress);
+    iLog->Log("gl4es: set_getprocaddress(SDL_GL_GetProcAddress) registered successfully.\n");
+  }
+  typedef void (*pfn_initialize_gl4es)(void);
+  pfn_initialize_gl4es p_init_gl4es = (pfn_initialize_gl4es)::dlsym(hGL, "initialize_gl4es");
+  if (p_init_gl4es)
+  {
+    p_init_gl4es();
+    iLog->Log("gl4es: initialize_gl4es() called successfully on active context.\n");
+  }
 #endif
 
   // Find functions after context is created and current!
