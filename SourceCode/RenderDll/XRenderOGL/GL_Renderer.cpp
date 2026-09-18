@@ -1675,7 +1675,7 @@ void CGLRenderer::UpdateTextureInVideoMemory(uint tnum, unsigned char *newdata,i
 
   SetTexture(tnum, eTT); 
 
-  int srcformat;
+  int srcformat = GL_RGB;
   if (eTF == eTF_DXT1)
     srcformat=GL_COMPRESSED_RGB_S3TC_DXT1_EXT;
 
@@ -1684,6 +1684,9 @@ void CGLRenderer::UpdateTextureInVideoMemory(uint tnum, unsigned char *newdata,i
 
 	if (eTF==eTF_8888)
     srcformat=GL_BGRA_EXT;// GL_RGBA;
+
+	if (eTF==eTF_RGBA)
+    srcformat=GL_RGBA;
 
 	if (eTF==eTF_4444)
 	{
@@ -1701,16 +1704,8 @@ void CGLRenderer::UpdateTextureInVideoMemory(uint tnum, unsigned char *newdata,i
   }
   else
   {
-    if (TargetTex[tnum] == GL_TEXTURE_2D)
-    {
-      int nw = ilog2(w);
-      if (w != nw)
-        return;
-      int nh = ilog2(h);
-      if (h != nh)
-        return;
-    }
-    glTexSubImage2D(TargetTex[tnum],0,posx,posy,w,h,srcformat,GL_UNSIGNED_BYTE,newdata);
+    int target = TargetTex[tnum] ? TargetTex[tnum] : GL_TEXTURE_2D;
+    glTexSubImage2D(target, 0, posx, posy, w, h, srcformat, GL_UNSIGNED_BYTE, newdata);
   }
 }
 

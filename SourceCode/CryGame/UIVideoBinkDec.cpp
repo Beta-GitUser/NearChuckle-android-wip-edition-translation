@@ -50,6 +50,19 @@ static MoviePlayerData* CreatePlayerData(const char* filename)
 	{
 		player->binkHandle = Bink_Open( corrected );
 	}
+	if (!player->binkHandle.isValid && GetISystem() && GetISystem()->GetIPak())
+	{
+		char adjusted[1024];
+		const char* pAdj = GetISystem()->GetIPak()->AdjustFileName(normalized, adjusted, ICryPak::FLAGS_PATH_REAL);
+		if (pAdj && pAdj[0])
+		{
+			char* adjCorrected = (char*)alloca(strlen(pAdj) + 3);
+			if (casepath(pAdj, adjCorrected))
+				player->binkHandle = Bink_Open(adjCorrected);
+			if (!player->binkHandle.isValid)
+				player->binkHandle = Bink_Open(pAdj);
+		}
+	}
 	if (!player->binkHandle.isValid)
 	{
 		player->binkHandle = Bink_Open( normalized );
@@ -153,7 +166,7 @@ bool CUIVideoBinkDecoder::Init(const char* pathToVideo, bool needSound)
 		m_frameBuffer = new uint8[w * h * 4];
 		memset(m_frameBuffer, 0, w * h * 4);
 		m_textureId = GetISystem()->GetIRenderer()->DownLoadToVideoMemory(m_frameBuffer,
-			w, h, eTF_0888, eTF_0888, 0, 0, FILTER_LINEAR, 0, nullptr, FT_DYNAMIC);
+			w, h, eTF_RGBA, eTF_RGBA, 0, 0, FILTER_LINEAR, 0, nullptr, FT_DYNAMIC);
 	
 		if (m_textureId < 0)
 		{
@@ -349,7 +362,11 @@ void CUIVideoBinkDecoder::Present()
 		else
 		{
 			player->hasFrame = false;
-			m_playerCmd = PLAYER_CMD_NONE; //?
+			m_playerCmd = PLAYER_CMD_NONE;
+			if (m_onFinished)
+			{
+				m_onFinished();
+			}
 			return;
 		}
 	}
@@ -369,7 +386,7 @@ void CUIVideoBinkDecoder::Present()
 	player->lastFramePos = player->framePos;
 
 	GetISystem()->GetIRenderer()->UpdateTextureInVideoMemory(m_textureId,
-		m_frameBuffer, 0, 0, player->vidWidth, player->vidHeight, eTF_8888);
+		m_frameBuffer, 0, 0, player->vidWidth, player->vidHeight, eTF_RGBA);
 
 	player->hasFrame = true;
 }
