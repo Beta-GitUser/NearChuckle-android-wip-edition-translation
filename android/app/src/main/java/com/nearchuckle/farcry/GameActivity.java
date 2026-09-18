@@ -92,9 +92,12 @@ public class GameActivity extends SDLActivity {
         try {
             Os.setenv("LIBGL_ES", "2", true);
             Os.setenv("LIBGL_GL", "21", true);
-            Os.setenv("LIBGL_NPOT", "3", true);
+            Os.setenv("LIBGL_NPOT", "2", true);
+            Os.setenv("LIBGL_MIPMAP", "1", true);
             Os.setenv("LIBGL_NOBANNER", "1", true);
             Os.setenv("LIBGL_NORMALIZE", "1", true);
+            Os.setenv("LIBGL_NOTEXMAT", "0", true);
+            Os.setenv("LIBGL_NODOWNSAMPLING", "1", true);
         } catch (ErrnoException e) {
             Log.e(TAG, "Failed setting gl4es environment variables", e);
         }
@@ -134,23 +137,23 @@ public class GameActivity extends SDLActivity {
         }
 
         // Renderer
-        args.add("r_Driver=OpenGL");
+        args.add("\"r_Driver OpenGL\"");
 
         // FOV
         int fov = prefs.getInt(LauncherActivity.KEY_FOV, 90);
-        args.add("game_fov=" + fov);
+        args.add("\"game_fov " + fov + "\"");
 
         // Resolution
         int resMode = prefs.getInt(LauncherActivity.KEY_RES_MODE, 0);
         if (resMode == 1) { // 1080p
-            args.add("r_Width=1920");
-            args.add("r_Height=1080");
+            args.add("\"r_Width 1920\"");
+            args.add("\"r_Height 1080\"");
         } else if (resMode == 2) { // 720p
-            args.add("r_Width=1280");
-            args.add("r_Height=720");
+            args.add("\"r_Width 1280\"");
+            args.add("\"r_Height 720\"");
         } else if (resMode == 3) { // 540p
-            args.add("r_Width=960");
-            args.add("r_Height=540");
+            args.add("\"r_Width 960\"");
+            args.add("\"r_Height 540\"");
         }
 
         // Custom parameters

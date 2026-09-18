@@ -518,8 +518,34 @@ char *mfLoadCG(char *prog_text)
     {
       glGenProgramsARB(1, &m_Insts[m_CurInst].m_dwHandle);
       glBindProgramARB(GL_FRAGMENT_PROGRAM_ARB, m_Insts[m_CurInst].m_dwHandle);
-      int size = strlen(prog_text);
-      glProgramStringARB(GL_FRAGMENT_PROGRAM_ARB, GL_PROGRAM_FORMAT_ASCII_ARB, size, (const GLubyte *)prog_text);
+
+      const char *pProgToLoad = prog_text;
+      std::string sanitizedProg;
+#ifdef __ANDROID__
+      if (prog_text && strstr(prog_text, "RECT"))
+      {
+        sanitizedProg = prog_text;
+        size_t pos = 0;
+        while ((pos = sanitizedProg.find("RECT", pos)) != std::string::npos)
+        {
+          bool bBefore = (pos == 0 || !isalnum((unsigned char)sanitizedProg[pos - 1]));
+          bool bAfter = (pos + 4 >= sanitizedProg.size() || !isalnum((unsigned char)sanitizedProg[pos + 4]));
+          if (bBefore && bAfter)
+          {
+            sanitizedProg.replace(pos, 4, "2D");
+            pos += 2;
+          }
+          else
+          {
+            pos += 4;
+          }
+        }
+        pProgToLoad = sanitizedProg.c_str();
+      }
+#endif
+
+      int size = strlen(pProgToLoad);
+      glProgramStringARB(GL_FRAGMENT_PROGRAM_ARB, GL_PROGRAM_FORMAT_ASCII_ARB, size, (const GLubyte *)pProgToLoad);
       GLint errpos;
       glGetIntegerv(GL_PROGRAM_ERROR_POSITION_ARB, &errpos);
       if(errpos != -1)
@@ -527,15 +553,16 @@ char *mfLoadCG(char *prog_text)
         const GLubyte *pError = glGetString(GL_PROGRAM_ERROR_STRING_ARB);
         iLog->Log("Warning: Fragment Program '%s' error (%s):\n", m_Name.c_str(), pError ? (const char*)pError : "unknown");
         int bgn = errpos - 10;
-        bgn < 0 ? 0 : bgn;
-        const char * c = (const char *)(prog_text + bgn);
-        for(int i = 0; i < 30; i++)
+        if (bgn < 0) bgn = 0;
+        const char * c = (const char *)(pProgToLoad + bgn);
+        char buf[64];
+        int count = 0;
+        for(int i = 0; i < 30 && (bgn+i < int(size-1)); i++)
         {
-          if(bgn+i >= int(size-1))
-            break;
-          iLog->Log("%c", *c++);
+          buf[count++] = *c++;
         }
-        iLog->Log("\n");
+        buf[count] = 0;
+        iLog->Log("  Near: %s\n", buf);
       }
     }
     else

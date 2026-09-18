@@ -1063,6 +1063,12 @@ bool CGLRenderer::CheckOGLExtensions(void)
 
 /////////////////////////////////////////////////////////////////////////////////////
 
+#ifdef __ANDROID__
+  // Disable texture_rectangle on Android / gl4es (GLES has no sampler2DRect in shaders)
+  SUPPORTS_GL_NV_texture_rectangle = 0;
+  SUPPORTS_GL_EXT_texture_rectangle = 0;
+#endif
+
   if (!SUPPORTS_GL_NV_texture_rectangle)
     iLog->Log("  ...GL_NV_texture_rectangle not found.\n");
   else
