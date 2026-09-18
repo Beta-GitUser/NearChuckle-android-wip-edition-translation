@@ -522,25 +522,37 @@ char *mfLoadCG(char *prog_text)
       const char *pProgToLoad = prog_text;
       std::string sanitizedProg;
 #ifdef __ANDROID__
-      if (prog_text && strstr(prog_text, "RECT"))
+      if (prog_text)
       {
         sanitizedProg = prog_text;
-        size_t pos = 0;
-        while ((pos = sanitizedProg.find("RECT", pos)) != std::string::npos)
+        bool bModified = false;
+        if (strstr(prog_text, "RECT"))
         {
-          bool bBefore = (pos == 0 || !isalnum((unsigned char)sanitizedProg[pos - 1]));
-          bool bAfter = (pos + 4 >= sanitizedProg.size() || !isalnum((unsigned char)sanitizedProg[pos + 4]));
-          if (bBefore && bAfter)
+          size_t pos = 0;
+          while ((pos = sanitizedProg.find("RECT", pos)) != std::string::npos)
           {
-            sanitizedProg.replace(pos, 4, "2D");
-            pos += 2;
-          }
-          else
-          {
-            pos += 4;
+            bool bBefore = (pos == 0 || !isalnum((unsigned char)sanitizedProg[pos - 1]));
+            bool bAfter = (pos + 4 >= sanitizedProg.size() || !isalnum((unsigned char)sanitizedProg[pos + 4]));
+            if (bBefore && bAfter)
+            {
+              sanitizedProg.replace(pos, 4, "2D");
+              pos += 2;
+              bModified = true;
+            }
+            else
+            {
+              pos += 4;
+            }
           }
         }
-        pProgToLoad = sanitizedProg.c_str();
+        size_t optPos = sanitizedProg.find("OPTION ARB_fragment_program_shadow;");
+        if (optPos != std::string::npos)
+        {
+          sanitizedProg.replace(optPos, strlen("OPTION ARB_fragment_program_shadow;"), "# OPTION ARB_fragment_program_shadow;");
+          bModified = true;
+        }
+        if (bModified)
+          pProgToLoad = sanitizedProg.c_str();
       }
 #endif
 

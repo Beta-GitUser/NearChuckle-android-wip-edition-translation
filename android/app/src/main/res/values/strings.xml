@@ -55,6 +55,12 @@
     <string name="dialog_driver_installed">Драйвер успешно установлен!</string>
     <string name="dialog_driver_install_failed">Ошибка при установке драйвера: </string>
     <string name="dialog_confirm_delete">Удалить выбранный драйвер?</string>
+    <string name="btn_download_shaders">Скачать GL шейдеры (Shader Cache)</string>
+    <string name="desc_download_shaders">Загрузить кэш OpenGL шейдеров (GL_Shaders_20260517.pak) для исправления графических багов</string>
+    <string name="dialog_shaders_downloading">Загрузка GL шейдеров...</string>
+    <string name="dialog_shaders_success">GL шейдеры успешно загружены и установлены в папку FCData!</string>
+    <string name="dialog_shaders_failed">Ошибка загрузки шейдеров: </string>
+    <string name="toast_specify_game_path_first">Сначала выберите папку с игрой Far Cry!</string>
     <string name="yes">Да</string>
     <string name="no">Нет</string>
     <string name="ok">OK</string>

@@ -316,8 +316,113 @@ public class LauncherActivity extends Activity {
             startActivity(intent);
         });
 
+        // Download GL Shaders button
+        Button btnDownloadShaders = findViewById(R.id.btn_download_shaders);
+        if (btnDownloadShaders != null) {
+            btnDownloadShaders.setOnClickListener(v -> downloadShadersPack());
+        }
+
         // Launch Game Button
         findViewById(R.id.btn_launch_game).setOnClickListener(v -> launchGame());
+    }
+
+    private static final String SHADERS_URL = "https://rohitcodes.fyi/nearchuckle/files/shadercache/GL_Shaders_20260517.pak";
+
+    private void downloadShadersPack() {
+        String path = editGamePath.getText().toString().trim();
+        if (path.isEmpty()) {
+            Toast.makeText(this, R.string.toast_specify_game_path_first, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        File gameDir = new File(path);
+        if (!gameDir.exists() || !gameDir.isDirectory()) {
+            Toast.makeText(this, "Папка с игрой не существует", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        File fcData = new File(gameDir, "FCData");
+        if (!fcData.exists()) {
+            fcData.mkdirs();
+        }
+        File targetPak = new File(fcData, "GL_Shaders_20260517.pak");
+        if (targetPak.exists() && targetPak.length() > 1024) {
+            new AlertDialog.Builder(this)
+                    .setTitle(R.string.btn_download_shaders)
+                    .setMessage("Файл шейдеров уже существует (" + (targetPak.length() / 1024) + " КБ). Скачать заново?")
+                    .setPositiveButton(R.string.yes, (dialog, which) -> startShaderDownload(targetPak))
+                    .setNegativeButton(R.string.no, null)
+                    .show();
+        } else {
+            startShaderDownload(targetPak);
+        }
+    }
+
+    private void startShaderDownload(File targetFile) {
+        android.app.ProgressDialog progress = new android.app.ProgressDialog(this);
+        progress.setTitle(R.string.btn_download_shaders);
+        progress.setMessage(getString(R.string.dialog_shaders_downloading));
+        progress.setProgressStyle(android.app.ProgressDialog.STYLE_HORIZONTAL);
+        progress.setMax(100);
+        progress.setCancelable(false);
+        progress.show();
+
+        new Thread(() -> {
+            java.io.InputStream in = null;
+            java.io.OutputStream out = null;
+            java.net.HttpURLConnection conn = null;
+            try {
+                java.net.URL url = new java.net.URL(SHADERS_URL);
+                conn = (java.net.HttpURLConnection) url.openConnection();
+                conn.setConnectTimeout(15000);
+                conn.setReadTimeout(30000);
+                conn.connect();
+
+                if (conn.getResponseCode() != java.net.HttpURLConnection.HTTP_OK) {
+                    throw new java.io.IOException("HTTP " + conn.getResponseCode() + " " + conn.getResponseMessage());
+                }
+
+                int fileLength = conn.getContentLength();
+                in = conn.getInputStream();
+                out = new java.io.FileOutputStream(targetFile);
+
+                byte[] buffer = new byte[8192];
+                long total = 0;
+                int count;
+                while ((count = in.read(buffer)) != -1) {
+                    total += count;
+                    if (fileLength > 0) {
+                        int pct = (int) (total * 100 / fileLength);
+                        runOnUiThread(() -> progress.setProgress(pct));
+                    }
+                    out.write(buffer, 0, count);
+                }
+                out.flush();
+
+                runOnUiThread(() -> {
+                    progress.dismiss();
+                    Toast.makeText(this, R.string.dialog_shaders_success, Toast.LENGTH_LONG).show();
+                    new AlertDialog.Builder(this)
+                            .setTitle("Шейдеры установлены")
+                            .setMessage(R.string.dialog_shaders_success)
+                            .setPositiveButton(R.string.ok, null)
+                            .show();
+                });
+            } catch (Exception e) {
+                targetFile.delete();
+                runOnUiThread(() -> {
+                    progress.dismiss();
+                    new AlertDialog.Builder(this)
+                            .setTitle("Ошибка")
+                            .setMessage(getString(R.string.dialog_shaders_failed) + e.getMessage())
+                            .setPositiveButton(R.string.ok, null)
+                            .show();
+                });
+            } finally {
+                try { if (out != null) out.close(); } catch (Exception ignored) {}
+                try { if (in != null) in.close(); } catch (Exception ignored) {}
+                if (conn != null) conn.disconnect();
+            }
+        }).start();
     }
 
     private void validateGamePath(String path) {

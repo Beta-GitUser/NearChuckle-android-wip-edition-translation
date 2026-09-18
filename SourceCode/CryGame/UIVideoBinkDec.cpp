@@ -1,6 +1,7 @@
 #include <list>
 #include "StdAfx.h"
 #include "ISound.h"
+#include <ICryPak.h>
 #include "UIVideoBinkDec.h"
 #include <BinkDecoder.h>
 
@@ -38,23 +39,29 @@ static MoviePlayerData* CreatePlayerData(const char* filename)
 	ICryPak* iPak = GetISystem()->GetIPak();
 	char* corrected = (char*)alloca(strlen(filename) + 3);
 	player->looping = 0;
-	if (casepath(filename, corrected))
+
+	char resolved[1024] = {0};
+	if (iPak)
 	{
-		player->binkHandle = Bink_Open( corrected );
-		if( !player->binkHandle.isValid )
+		const char* pAdj = iPak->AdjustFileName(filename, resolved, 0);
+		if (pAdj && pAdj[0])
 		{
-			iLog->LogError("Failed to open video file %s", filename);
-			return nullptr;
+			player->binkHandle = Bink_Open(pAdj);
 		}
 	}
-	else
+	if (!player->binkHandle.isValid && casepath(filename, corrected))
+	{
+		player->binkHandle = Bink_Open( corrected );
+	}
+	if (!player->binkHandle.isValid)
 	{
 		player->binkHandle = Bink_Open( filename );
-		if( !player->binkHandle.isValid )
-		{
-			iLog->LogError("Failed to open video file %s", filename);
-			return nullptr;
-		}
+	}
+	if (!player->binkHandle.isValid)
+	{
+		if (iLog) iLog->LogError("Failed to open video file %s", filename);
+		delete player;
+		return nullptr;
 	}
 
 	Bink_GetFrameSize( player->binkHandle, w, h );
@@ -241,32 +248,50 @@ void CUIVideoBinkDecoder::BinkDecReset()
 
 void CUIVideoBinkDecoder::DrawYUV(void)
 {
-	int i, j, k, si, sj;
 	MoviePlayerData* player = m_player;
-	uint8_t Y, U, V;
-	float R, G, B;
+	if (!player || !m_frameBuffer)
+		return;
 
-	for (i = k = 0; i < player->vidHeight; i++)
+	int width = player->vidWidth;
+	int height = player->vidHeight;
+	int yPitch = player->yuvBuffer[0].pitch;
+	int uPitch = player->yuvBuffer[1].pitch;
+	int vPitch = player->yuvBuffer[2].pitch;
+	const uint8_t* yData = player->yuvBuffer[0].data;
+	const uint8_t* uData = player->yuvBuffer[1].data;
+	const uint8_t* vData = player->yuvBuffer[2].data;
+
+	if (!yData || !uData || !vData)
+		return;
+
+	for (int i = 0; i < height; i++)
 	{
-		for (j = 0; j < player->vidWidth; j++)
+		uint8_t* destRow = m_frameBuffer + (i * width * 4);
+		const uint8_t* yRow = yData + (i * yPitch);
+		int si = i / 2;
+		const uint8_t* uRow = uData + (si * uPitch);
+		const uint8_t* vRow = vData + (si * vPitch);
+
+		for (int j = 0; j < width; j++)
 		{
-			Y = player->yuvBuffer[0].data[(i * player->yuvBuffer[0].pitch) + j];
-			si = (i % 2 == 0) ? i / 2 : (i - 1) / 2;
-			sj = (j % 2 == 0) ? j / 2 : (j - 1) / 2;
+			int sj = j / 2;
+			int y = yRow[j];
+			int u = uRow[sj] - 128;
+			int v = vRow[sj] - 128;
 
-			U = player->yuvBuffer[1].data[si * player->yuvBuffer[1].pitch + sj];
-			V = player->yuvBuffer[2].data[si * player->yuvBuffer[2].pitch + sj];
+			int r = (int)(y + 1.4075f * v);
+			int g = (int)(y - 0.3455f * u - 0.7169f * v);
+			int b = (int)(y + 1.7790f * u);
 
-			R = (float)Y + 1.4075f * ((float)V - 128.0f);
-			G = (float)Y - 0.3455f * ((float)U - 128.0f) - 0.7169f * ((float)V - 128.0f);
-			B = (float)Y + 1.7790f * ((float)U - 128.0f);
+			if (r < 0) r = 0; else if (r > 255) r = 255;
+			if (g < 0) g = 0; else if (g > 255) g = 255;
+			if (b < 0) b = 0; else if (b > 255) b = 255;
 
-			m_frameBuffer[(i * player->yuvBuffer[0].pitch) + j + k] = (uint8_t)B;
-			m_frameBuffer[(i * player->yuvBuffer[0].pitch) + j + k + 1] = (uint8_t)G;
-			m_frameBuffer[(i * player->yuvBuffer[0].pitch) + j + k + 2] = (uint8_t)R;
-			m_frameBuffer[(i * player->yuvBuffer[0].pitch) + j + k + 3] = 255;
-
-			k += 3;
+			// RGBA
+			destRow[j * 4 + 0] = (uint8_t)r;
+			destRow[j * 4 + 1] = (uint8_t)g;
+			destRow[j * 4 + 2] = (uint8_t)b;
+			destRow[j * 4 + 3] = 255;
 		}
 	}
 }
