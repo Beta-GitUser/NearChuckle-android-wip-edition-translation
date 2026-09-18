@@ -145,7 +145,13 @@ public class GameActivity extends SDLActivity {
 
         // Resolution
         int resMode = prefs.getInt(LauncherActivity.KEY_RES_MODE, 0);
-        if (resMode == 1) { // 1080p
+        android.util.DisplayMetrics dm = getResources().getDisplayMetrics();
+        int screenW = Math.max(dm.widthPixels, dm.heightPixels);
+        int screenH = Math.min(dm.widthPixels, dm.heightPixels);
+        if (resMode == 0) { // Native Display Resolution
+            args.add("\"r_Width " + screenW + "\"");
+            args.add("\"r_Height " + screenH + "\"");
+        } else if (resMode == 1) { // 1080p
             args.add("\"r_Width 1920\"");
             args.add("\"r_Height 1080\"");
         } else if (resMode == 2) { // 720p
@@ -155,6 +161,12 @@ public class GameActivity extends SDLActivity {
             args.add("\"r_Width 960\"");
             args.add("\"r_Height 540\"");
         }
+        args.add("\"r_Fullscreen 1\"");
+
+        // Graphics quality settings for full SM2.0 lighting, water, and 3D menu background
+        args.add("\"r_Quality_BumpMapping 3\"");
+        args.add("\"r_NoPS20 0\"");
+        args.add("\"GL_NV30_PS20 1\"");
 
         // Custom parameters
         String customArgs = prefs.getString(LauncherActivity.KEY_CUSTOM_ARGS, "").trim();

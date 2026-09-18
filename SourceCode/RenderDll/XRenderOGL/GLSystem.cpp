@@ -1281,10 +1281,8 @@ bool CGLRenderer::CheckOGLExtensions(void)
   SUPPORTS_GL_EXT_texture_filter_anisotropic = 1;
 
   m_Features |= RFT_HW_VS | RFT_HW_PS20 | RFT_HW_TS | RFT_MULTITEXTURE | RFT_COMPRESSTEXTURE | RFT_ALLOWANISOTROPIC | RFT_FOGVP | RFT_HW_ENVBUMPPROJECTED | RFT_BUMP;
-  if ((m_Features & RFT_HW_MASK) == 0)
-  {
-    m_Features |= RFT_HW_GFFX;
-  }
+  m_Features &= ~RFT_HW_MASK;
+  m_Features |= RFT_HW_RADEON;
   if (m_MaxActiveTexturesARB_VP < 8)
     m_MaxActiveTexturesARB_VP = 8;
   if (m_MaxActiveTexturesARBFixed < 4)
@@ -2377,6 +2375,23 @@ exr:
         var->Set(0);
     }
   }
+
+#ifdef __ANDROID__
+  // On Android, ensure SM2.0 ARB shaders (ATI R300 path) are active:
+  // Mobile GPUs do not support NV register combiners (SM1.1), which causes black/invisible 3D world and menu island.
+  m_Features &= ~RFT_HW_MASK;
+  m_Features |= RFT_HW_RADEON;
+  nGPU = RFT_HW_RADEON;
+  CV_gl_nv30_ps20 = 1;
+  CV_r_Quality_BumpMapping = 3;
+  CV_r_nops20 = 0;
+  var = iConsole->GetCVar("r_Quality_BumpMapping");
+  if (var)
+    var->Set(3);
+  var = iConsole->GetCVar("r_NoPS20");
+  if (var)
+    var->Set(0);
+#endif
 
   iLog->Log(" ****** OGL CryRenderer Stats ******\n");
   iLog->Log(" Mode: %d x %d (%s)\n", m_width, m_height, fullscreen ? "FullScreen" : "Windowed");
