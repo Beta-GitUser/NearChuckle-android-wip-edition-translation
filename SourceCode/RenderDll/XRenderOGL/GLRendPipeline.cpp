@@ -739,16 +739,25 @@ void CGLRenderer::EF_Release(int nFlags)
 
   if (nFlags & EFRF_VSHADERS)
   {
+    CVProgram::m_LastVP = NULL;
+    CVProgram::m_LastTypeVP = 0;
+    m_RP.m_LastVP = NULL;
+    m_RP.m_CurVP = NULL;
     for (i=0; i<CVProgram::m_VPrograms.Num(); i++)
     {
-      CVProgram::m_VPrograms[i]->mfReset();
+      if (CVProgram::m_VPrograms[i])
+        CVProgram::m_VPrograms[i]->mfReset();
     }
   }
   if (nFlags & EFRF_PSHADERS)
   {
+    CPShader::m_LastVP = NULL;
+    CPShader::m_LastTypeVP = 0;
+    m_RP.m_CurPS = NULL;
     for (i=0; i<CPShader::m_PShaders.Num(); i++)
     {
-      CPShader::m_PShaders[i]->mfReset();
+      if (CPShader::m_PShaders[i])
+        CPShader::m_PShaders[i]->mfReset();
     }
   }
 }

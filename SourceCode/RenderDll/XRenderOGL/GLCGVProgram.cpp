@@ -143,6 +143,11 @@ void CCGVProgram_GL::mfPrecache()
 
 void CCGVProgram_GL::mfReset()
 {
+  if (m_LastVP == this)
+  {
+    m_LastVP = NULL;
+    m_LastTypeVP = 0;
+  }
   for (int i=0; i<m_Insts.Num(); i++)
   {
     m_CurInst = i;
@@ -179,6 +184,11 @@ void CCGVProgram_GL::mfFree()
 
 CCGVProgram_GL::~CCGVProgram_GL()
 {
+  if (m_LastVP == this)
+  {
+    m_LastVP = NULL;
+    m_LastTypeVP = 0;
+  }
   mfFree();
   CVProgram::m_VPrograms[m_Id] = NULL;
 }
@@ -1853,6 +1863,11 @@ bool CCGVProgram_GL::mfSet(bool bEnable, SShaderPassHW *slw, int nFlags)
       rd->Logv(SRendItem::m_RecurseLevel, "--- Reset CGVProgram \"%s\"\n", m_Name.c_str());
 #endif
     mfDisable();
+    if (m_LastVP == this)
+    {
+      m_LastVP = NULL;
+      m_LastTypeVP = 0;
+    }
     rd->m_RP.m_PersFlags &= ~RBPF_VSNEEDSET;
   }
   else

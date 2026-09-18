@@ -2776,7 +2776,12 @@ void CGLRenderer::ResetToDefault()
 
   CPShader::m_CurRC = NULL;
   CVProgram::m_LastVP = NULL;
+  CVProgram::m_LastTypeVP = 0;
   CPShader::m_LastVP = NULL;
+  CPShader::m_LastTypeVP = 0;
+  m_RP.m_LastVP = NULL;
+  m_RP.m_CurVP = NULL;
+  m_RP.m_CurPS = NULL;
 }
 
 int CGLRenderer::GenerateAlphaGlowTexture(float k)

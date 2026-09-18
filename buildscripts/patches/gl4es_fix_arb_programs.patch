@@ -14,10 +14,19 @@ index 2243472..beffb87 100644
  
  #endif // _GL4ES_MAIN_CONFIG_H
 diff --git a/src/gl/fpe.c b/src/gl/fpe.c
-index 7d53643..49f97dc 100644
+index 7d53643..758a145 100644
 --- a/src/gl/fpe.c
 +++ b/src/gl/fpe.c
-@@ -302,11 +302,27 @@ void APIENTRY_GL4ES fpe_oldprogram(fpe_state_t* state) {
+@@ -43,6 +43,8 @@ void fpe_Init(glstate_t *glstate) {
+     glstate->fpe_cache = fpe_NewCache();
+ }
+ 
++
++
+ void fpe_Dispose(glstate_t *glstate) {
+     fpe_disposeCache(glstate->fpe_cache, 0);
+     glstate->fpe_cache = NULL;
+@@ -302,11 +304,27 @@ void APIENTRY_GL4ES fpe_oldprogram(fpe_state_t* state) {
      LOAD_GLES2(glGetProgramInfoLog);
      GLint status;
      // There is an old program (either vtx or frg or both)
@@ -48,7 +57,7 @@ index 7d53643..49f97dc 100644
          gl4es_glShaderSource(glstate->fpe->vert, 1, fpe_CustomVertexShader(old_vtx->shader->source, state, state->fragment_prg_id?0:1), NULL);
          gl4es_glCompileShader(glstate->fpe->vert);
          gl4es_glGetShaderiv(glstate->fpe->vert, GL_COMPILE_STATUS, &status);
-@@ -321,7 +337,8 @@ void APIENTRY_GL4ES fpe_oldprogram(fpe_state_t* state) {
+@@ -321,7 +339,8 @@ void APIENTRY_GL4ES fpe_oldprogram(fpe_state_t* state) {
          getShader(glstate->fpe->vert)->old = old_vtx;
      } else {
          // use fragment need to build default vertex shader
@@ -58,7 +67,7 @@ index 7d53643..49f97dc 100644
          gl4es_glCompileShader(glstate->fpe->vert);
          gl4es_glGetShaderiv(glstate->fpe->vert, GL_COMPILE_STATUS, &status);
          if(status!=GL_TRUE) {
-@@ -332,7 +349,7 @@ void APIENTRY_GL4ES fpe_oldprogram(fpe_state_t* state) {
+@@ -332,7 +351,7 @@ void APIENTRY_GL4ES fpe_oldprogram(fpe_state_t* state) {
      }
      gl4es_glAttachShader(glstate->fpe->prog, glstate->fpe->vert);
      glstate->fpe->frag = gl4es_glCreateShader(GL_FRAGMENT_SHADER);
@@ -67,7 +76,7 @@ index 7d53643..49f97dc 100644
          gl4es_glShaderSource(glstate->fpe->frag, 1, fpe_CustomFragmentShader(old_frg->shader->source, state), NULL);
          gl4es_glCompileShader(glstate->fpe->frag);
          gl4es_glGetShaderiv(glstate->fpe->frag, GL_COMPILE_STATUS, &status);
-@@ -347,7 +364,8 @@ void APIENTRY_GL4ES fpe_oldprogram(fpe_state_t* state) {
+@@ -347,7 +366,8 @@ void APIENTRY_GL4ES fpe_oldprogram(fpe_state_t* state) {
          getShader(glstate->fpe->frag)->old = old_frg;
      } else {
          // use vertex need to build default fragment shader
@@ -77,7 +86,7 @@ index 7d53643..49f97dc 100644
          gl4es_glCompileShader(glstate->fpe->frag);
          gl4es_glGetShaderiv(glstate->fpe->frag, GL_COMPILE_STATUS, &status);
          if(status!=GL_TRUE) {
-@@ -457,7 +475,7 @@ program_t* APIENTRY_GL4ES fpe_CustomShader(program_t* glprogram, fpe_state_t* st
+@@ -457,7 +477,7 @@ program_t* APIENTRY_GL4ES fpe_CustomShader(program_t* glprogram, fpe_state_t* st
      if(fpe->glprogram==NULL) {
          GLint status;
          fpe->vert = gl4es_glCreateShader(GL_VERTEX_SHADER);
@@ -86,7 +95,7 @@ index 7d53643..49f97dc 100644
          gl4es_glCompileShader(fpe->vert);
          gl4es_glGetShaderiv(fpe->vert, GL_COMPILE_STATUS, &status);
          if(status!=GL_TRUE) {
-@@ -467,7 +485,7 @@ program_t* APIENTRY_GL4ES fpe_CustomShader(program_t* glprogram, fpe_state_t* st
+@@ -467,7 +487,7 @@ program_t* APIENTRY_GL4ES fpe_CustomShader(program_t* glprogram, fpe_state_t* st
              return glprogram;   // fallback to non-customized custom program..
          }
          fpe->frag = gl4es_glCreateShader(GL_FRAGMENT_SHADER);
@@ -95,7 +104,7 @@ index 7d53643..49f97dc 100644
          gl4es_glCompileShader(fpe->frag);
          gl4es_glGetShaderiv(fpe->frag, GL_COMPILE_STATUS, &status);
          if(status!=GL_TRUE) {
-@@ -544,7 +562,7 @@ program_t* APIENTRY_GL4ES fpe_CustomShader_DefaultVertex(program_t* glprogram, f
+@@ -544,7 +564,7 @@ program_t* APIENTRY_GL4ES fpe_CustomShader_DefaultVertex(program_t* glprogram, f
              return glprogram;   // fallback to non-customized custom program..
          }
          fpe->frag = gl4es_glCreateShader(GL_FRAGMENT_SHADER);
@@ -104,7 +113,7 @@ index 7d53643..49f97dc 100644
          gl4es_glCompileShader(fpe->frag);
          gl4es_glGetShaderiv(fpe->frag, GL_COMPILE_STATUS, &status);
          if(status!=GL_TRUE) {
-@@ -1401,36 +1419,32 @@ void realize_glenv(int ispoint, int first, int count, GLenum type, const void* i
+@@ -1401,36 +1421,32 @@ void realize_glenv(int ispoint, int first, int count, GLenum type, const void* i
          }
      }
      // oldprograms
@@ -140,18 +149,18 @@ index 7d53643..49f97dc 100644
 -        GO(3d)
 -        GO(Cube)
 -        #undef GO
-+    if(glprogram->last_vert && glprogram->last_vert->old && glprogram->has_vtx_progloc) {
++    if(glprogram->last_vert && glprogram->last_vert->old && getOldProgram(glprogram->last_vert->old->id) && glprogram->has_vtx_progloc) {
 +        for (int i=0; i<MAX_VTX_PROG_LOC_PARAMS; ++i)
 +            GoUniformfv(glprogram, glprogram->vtx_progloc[i], 4, 1, glprogram->last_vert->old->prog_local_params+i*4);
 +    }
 +    if(glprogram->has_frg_progenv) {
 +        for (int i=0; i<MAX_FRG_PROG_ENV_PARAMS; ++i)
 +            GoUniformfv(glprogram, glprogram->frg_progenv[i], 4, 1, glstate->glsl->frg_env_params+i*4);
-     }
-+    if(glprogram->last_frag && glprogram->last_frag->old && glprogram->has_frg_progloc) {
++    }
++    if(glprogram->last_frag && glprogram->last_frag->old && getOldProgram(glprogram->last_frag->old->id) && glprogram->has_frg_progloc) {
 +        for (int i=0; i<MAX_FRG_PROG_LOC_PARAMS; ++i)
 +            GoUniformfv(glprogram, glprogram->frg_progloc[i], 4, 1, glprogram->last_frag->old->prog_local_params+i*4);
-+    }
+     }
 +    #define GO(A)   \
 +    if(glprogram->has_samplers ## A) {                                      \
 +        for (int i=0; i<MAX_TEX; ++i)                                       \
@@ -165,7 +174,7 @@ index 7d53643..49f97dc 100644
      // set VertexAttrib if needed
      for(int i=0; i<hardext.maxvattrib; i++) 
      if(glprogram->va_size[i])   // only check used VA...
-@@ -1832,18 +1846,19 @@ int builtin_CheckUniform(program_t *glprogram, char* name, GLint id, int size) {
+@@ -1832,18 +1848,19 @@ int builtin_CheckUniform(program_t *glprogram, char* name, GLint id, int size) {
          glprogram->builtin_instanceID = id;
          return 1;
      }
@@ -192,7 +201,7 @@ index 7d53643..49f97dc 100644
          if(n>=0 && n<hardext.maxplanes) {
              glprogram->builtin_clipplanes[n] = id;
              glprogram->has_builtin_clipplanes = 1;
-@@ -1877,22 +1892,22 @@ int builtin_CheckUniform(program_t *glprogram, char* name, GLint id, int size) {
+@@ -1877,22 +1894,22 @@ int builtin_CheckUniform(program_t *glprogram, char* name, GLint id, int size) {
      if(strncmp(name, texenvcolor_code, strlen(texenvcolor_code))==0) {
          // it a TexEnvColor! grab it's number
          int l = strlen(texenvcolor_code);
@@ -224,7 +233,7 @@ index 7d53643..49f97dc 100644
      if(strncmp(name, texgeneyestart_code, strlen(texgeneyestart_code))==0) {
          for (int i=0; i<4; i++) {
              char tmp[100];
-@@ -2048,90 +2063,86 @@ int builtin_CheckUniform(program_t *glprogram, char* name, GLint id, int size) {
+@@ -2048,90 +2065,86 @@ int builtin_CheckUniform(program_t *glprogram, char* name, GLint id, int size) {
          return 1;
      }
      // oldprogram
@@ -372,6 +381,74 @@ index 7d53643..49f97dc 100644
          return 1;                                                                   \
      }
      GO(1d)
+diff --git a/src/gl/fpe.h b/src/gl/fpe.h
+index e20cb2f..a899f1b 100644
+--- a/src/gl/fpe.h
++++ b/src/gl/fpe.h
+@@ -238,6 +238,7 @@ typedef struct scratch_s {
+ void free_scratch(scratch_t* scratch);
+ 
+ fpe_fpe_t *fpe_GetCache(fpe_cache_t *cur, fpe_state_t *state, int fixed);
++void fpe_CleanCacheOldProgram(GLuint id);
+ void fpe_disposeCache(fpe_cache_t* cache, int freeprog);
+ 
+ // fpe is gles export replacement, so should use same caling conversion
+diff --git a/src/gl/fpe_cache.c b/src/gl/fpe_cache.c
+index 4f16639..c7dbe15 100644
+--- a/src/gl/fpe_cache.c
++++ b/src/gl/fpe_cache.c
+@@ -300,4 +300,37 @@ void fpe_AddProgramPSA(GLuint program, fpe_state_t* state)
+     kh_value(psa->cache, k) = p;
+     // all done
+     psa->size = kh_size(psa->cache);
+-}
+\ No newline at end of file
++}
++#include "gl4es.h"
++#include "glstate.h"
++
++void fpe_CleanCacheOldProgram(GLuint id) {
++    if(!glstate) return;
++    if(glstate->fpe && (glstate->fpe->state.vertex_prg_id == id || glstate->fpe->state.fragment_prg_id == id)) {
++        glstate->fpe = NULL;
++    }
++    if(glstate->fpe_cache) {
++        khash_t(fpecachelist) *cache = (khash_t(fpecachelist)*)glstate->fpe_cache;
++        khint_t k;
++        for (k = kh_begin(cache); k != kh_end(cache); ) {
++            if (kh_exist(cache, k)) {
++                fpe_fpe_t *m = kh_value(cache, k);
++                if (m && (m->state.vertex_prg_id == id || m->state.fragment_prg_id == id)) {
++                    if (glstate->fpe == m)
++                        glstate->fpe = NULL;
++                    if (m->glprogram)
++                        gl4es_glDeleteProgram(m->glprogram->id);
++                    if (m->vert)
++                        gl4es_glDeleteShader(m->vert);
++                    if (m->frag)
++                        gl4es_glDeleteShader(m->frag);
++                    free(m);
++                    kh_del(fpecachelist, cache, k);
++                    k = kh_begin(cache);
++                    continue;
++                }
++            }
++            ++k;
++        }
++    }
++}
+diff --git a/src/gl/fpe_cache.h b/src/gl/fpe_cache.h
+index e4ed755..a6716aa 100644
+--- a/src/gl/fpe_cache.h
++++ b/src/gl/fpe_cache.h
+@@ -37,6 +37,7 @@ typedef struct kh_fpecachelist_s kh_fpecachelist_t;
+ fpe_cache_t* fpe_NewCache();
+ void fpe_disposeCache(fpe_cache_t* cache, int freeprog);
+ fpe_fpe_t *fpe_GetCache(fpe_cache_t *cur, fpe_state_t *state, int fixed);
++void fpe_CleanCacheOldProgram(GLuint id);
+ 
+ void fpe_InitPSA(const char* name);
+ void fpe_FreePSA();
 diff --git a/src/gl/fpe_shader.c b/src/gl/fpe_shader.c
 index dc7ebb1..8b64a7a 100644
 --- a/src/gl/fpe_shader.c
@@ -397,10 +474,10 @@ index dc7ebb1..8b64a7a 100644
      if(!shad_cap) shad_cap = 1024;
      if(!shad) shad = (char*)malloc(shad_cap);
 diff --git a/src/gl/oldprogram.c b/src/gl/oldprogram.c
-index 39aa58a..104a165 100644
+index 39aa58a..82377f2 100644
 --- a/src/gl/oldprogram.c
 +++ b/src/gl/oldprogram.c
-@@ -148,6 +148,10 @@ void APIENTRY_GL4ES gl4es_glProgramStringARB(GLenum target, GLenum format, GLsiz
+@@ -148,9 +148,14 @@ void APIENTRY_GL4ES gl4es_glProgramStringARB(GLenum target, GLenum format, GLsiz
          errorShim(GL_INVALID_ENUM);
          return;
      }
@@ -411,7 +488,11 @@ index 39aa58a..104a165 100644
      if(old->string)
          free(old->string);
      // grab the new program
-@@ -291,11 +295,21 @@ void APIENTRY_GL4ES gl4es_glBindProgramARB(GLenum target, GLuint program) {
++    if(old && old->id) { fpe_CleanCacheOldProgram(old->id); }
+     old->string = calloc(1, len + 1);
+     memcpy(old->string, string, len);
+     // check if a shader is actually attached
+@@ -291,11 +296,22 @@ void APIENTRY_GL4ES gl4es_glBindProgramARB(GLenum target, GLuint program) {
  
  void APIENTRY_GL4ES gl4es_glDeleteProgramsARB(GLsizei n, const GLuint *programs) {
      DBG(printf("glDeleteProgramsARB(%d, %p)\n", n, programs);)
@@ -421,6 +502,7 @@ index 39aa58a..104a165 100644
      kh_oldprograms_t * oldprograms = glstate->glsl->oldprograms;
      for (int i=0; i<n; ++i) {
          GLuint id = programs[i];
++        fpe_CleanCacheOldProgram(id);
 +        if (glstate->fpe_state) {
 +            if (glstate->fpe_state->vertex_prg_id == id)
 +                glstate->fpe_state->vertex_prg_id = 0;

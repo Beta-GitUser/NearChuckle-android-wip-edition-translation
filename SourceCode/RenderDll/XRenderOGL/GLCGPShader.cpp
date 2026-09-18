@@ -131,6 +131,11 @@ void CCGPShader_GL::mfPrecache()
 
 void CCGPShader_GL::mfReset()
 {
+  if (m_LastVP == this)
+  {
+    m_LastVP = NULL;
+    m_LastTypeVP = 0;
+  }
   for (int i=0; i<m_Insts.Num(); i++)
   {
     m_CurInst = i;
@@ -174,6 +179,11 @@ void CCGPShader_GL::mfFree()
 
 CCGPShader_GL::~CCGPShader_GL()
 {
+  if (m_LastVP == this)
+  {
+    m_LastVP = NULL;
+    m_LastTypeVP = 0;
+  }
   mfFree();
   CPShader::m_PShaders[m_Id] = NULL;
 }
@@ -952,6 +962,11 @@ bool CCGPShader_GL::mfSet(bool bEnable, SShaderPassHW *slw, int nFlags)
       rd->Logv(SRendItem::m_RecurseLevel, "--- Reset CGPShader \"%s\"\n", m_Name.c_str());
 #endif
     mfDisable();
+    if (m_LastVP == this)
+    {
+      m_LastVP = NULL;
+      m_LastTypeVP = 0;
+    }
     rd->m_RP.m_PersFlags &= ~RBPF_PS2NEEDSET;
     rd->m_RP.m_PersFlags &= ~RBPF_PS1NEEDSET;
   }

@@ -883,6 +883,11 @@ char *mfLoadCG(char *prog_text)
   }
   virtual void mfDisable()
   {
+    if (m_LastVP == this)
+    {
+      m_LastVP = NULL;
+      m_LastTypeVP = 0;
+    }
     if (m_CGProfileType == CG_PROFILE_FP20)
     {
       if (m_Insts[m_CurInst].m_dwHandleExt)
@@ -908,6 +913,11 @@ char *mfLoadCG(char *prog_text)
 
   void mfDel()
   {
+    if (m_LastVP == this)
+    {
+      m_LastVP = NULL;
+      m_LastTypeVP = 0;
+    }
     if(m_Insts[m_CurInst].m_dwHandle && m_Insts[m_CurInst].m_dwHandle != -1)
     {
       if (m_Insts[m_CurInst].m_BindConstants)
