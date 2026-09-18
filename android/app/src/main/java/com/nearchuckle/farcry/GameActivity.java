@@ -3,10 +3,12 @@ package com.nearchuckle.farcry;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Process;
 import android.system.ErrnoException;
 import android.system.Os;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
@@ -145,9 +147,12 @@ public class GameActivity extends SDLActivity {
 
         // Resolution
         int resMode = prefs.getInt(LauncherActivity.KEY_RES_MODE, 0);
-        android.util.DisplayMetrics dm = new android.util.DisplayMetrics();
+        DisplayMetrics dm = new DisplayMetrics();
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            android.view.Display display = getDisplay();
+            android.view.Display display = null;
+            try {
+                display = getDisplay();
+            } catch (Throwable ignored) {}
             if (display != null) {
                 display.getRealMetrics(dm);
             } else {
