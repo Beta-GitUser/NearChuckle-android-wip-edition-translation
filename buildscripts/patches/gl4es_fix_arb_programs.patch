@@ -1,14 +1,8 @@
 diff --git a/src/gl/fpe.c b/src/gl/fpe.c
-index 7d53643..591be2e 100644
+index 7d53643..3fbab59 100644
 --- a/src/gl/fpe.c
 +++ b/src/gl/fpe.c
-@@ -297,16 +297,30 @@ uniform_t* findUniform(khash_t(uniformlist) *uniforms, const char* name)
- 
- }
- // ********* Old Program binding Handling *********
-+void APIENTRY_GL4ES fpe_program(int ispoint);
- void APIENTRY_GL4ES fpe_oldprogram(fpe_state_t* state) {
-     LOAD_GLES2(glGetShaderInfoLog);
+@@ -302,11 +302,27 @@ void APIENTRY_GL4ES fpe_oldprogram(fpe_state_t* state) {
      LOAD_GLES2(glGetProgramInfoLog);
      GLint status;
      // There is an old program (either vtx or frg or both)
@@ -17,17 +11,20 @@ index 7d53643..591be2e 100644
 +    oldprogram_t* old_vtx = state->vertex_prg_id ? getOldProgram(state->vertex_prg_id) : NULL;
 +    oldprogram_t* old_frg = state->fragment_prg_id ? getOldProgram(state->fragment_prg_id) : NULL;
 +
-+    if (old_vtx && (!old_vtx->shader || !old_vtx->shader->source))
++    if (old_vtx && (!old_vtx->shader || !old_vtx->shader->source)) {
 +        old_vtx = NULL;
-+    if (old_frg && (!old_frg->shader || !old_frg->shader->source))
++    }
++    if (old_frg && (!old_frg->shader || !old_frg->shader->source)) {
 +        old_frg = NULL;
++    }
 +
-+    if (!old_vtx) state->vertex_prg_id = 0;
-+    if (!old_frg) state->fragment_prg_id = 0;
-+
-+    if (!old_vtx && !old_frg) {
-+        fpe_program(state->point);
-+        return;
++    if (!old_vtx) {
++        state->vertex_prg_id = 0;
++        if (glstate->fpe_state) glstate->fpe_state->vertex_prg_id = 0;
++    }
++    if (!old_frg) {
++        state->fragment_prg_id = 0;
++        if (glstate->fpe_state) glstate->fpe_state->fragment_prg_id = 0;
 +    }
  
      glstate->fpe->vert = gl4es_glCreateShader(GL_VERTEX_SHADER);
@@ -36,7 +33,7 @@ index 7d53643..591be2e 100644
          gl4es_glShaderSource(glstate->fpe->vert, 1, fpe_CustomVertexShader(old_vtx->shader->source, state, state->fragment_prg_id?0:1), NULL);
          gl4es_glCompileShader(glstate->fpe->vert);
          gl4es_glGetShaderiv(glstate->fpe->vert, GL_COMPILE_STATUS, &status);
-@@ -321,7 +335,8 @@ void APIENTRY_GL4ES fpe_oldprogram(fpe_state_t* state) {
+@@ -321,7 +337,8 @@ void APIENTRY_GL4ES fpe_oldprogram(fpe_state_t* state) {
          getShader(glstate->fpe->vert)->old = old_vtx;
      } else {
          // use fragment need to build default vertex shader
@@ -46,7 +43,7 @@ index 7d53643..591be2e 100644
          gl4es_glCompileShader(glstate->fpe->vert);
          gl4es_glGetShaderiv(glstate->fpe->vert, GL_COMPILE_STATUS, &status);
          if(status!=GL_TRUE) {
-@@ -332,7 +347,7 @@ void APIENTRY_GL4ES fpe_oldprogram(fpe_state_t* state) {
+@@ -332,7 +349,7 @@ void APIENTRY_GL4ES fpe_oldprogram(fpe_state_t* state) {
      }
      gl4es_glAttachShader(glstate->fpe->prog, glstate->fpe->vert);
      glstate->fpe->frag = gl4es_glCreateShader(GL_FRAGMENT_SHADER);
@@ -55,7 +52,7 @@ index 7d53643..591be2e 100644
          gl4es_glShaderSource(glstate->fpe->frag, 1, fpe_CustomFragmentShader(old_frg->shader->source, state), NULL);
          gl4es_glCompileShader(glstate->fpe->frag);
          gl4es_glGetShaderiv(glstate->fpe->frag, GL_COMPILE_STATUS, &status);
-@@ -347,7 +362,8 @@ void APIENTRY_GL4ES fpe_oldprogram(fpe_state_t* state) {
+@@ -347,7 +364,8 @@ void APIENTRY_GL4ES fpe_oldprogram(fpe_state_t* state) {
          getShader(glstate->fpe->frag)->old = old_frg;
      } else {
          // use vertex need to build default fragment shader
@@ -65,6 +62,57 @@ index 7d53643..591be2e 100644
          gl4es_glCompileShader(glstate->fpe->frag);
          gl4es_glGetShaderiv(glstate->fpe->frag, GL_COMPILE_STATUS, &status);
          if(status!=GL_TRUE) {
+@@ -457,7 +475,7 @@ program_t* APIENTRY_GL4ES fpe_CustomShader(program_t* glprogram, fpe_state_t* st
+     if(fpe->glprogram==NULL) {
+         GLint status;
+         fpe->vert = gl4es_glCreateShader(GL_VERTEX_SHADER);
+-        gl4es_glShaderSource(fpe->vert, 1, fpe_CustomVertexShader(glprogram->last_vert->source, state, 0), NULL);
++        gl4es_glShaderSource(fpe->vert, 1, fpe_CustomVertexShader((glprogram->last_vert && glprogram->last_vert->source) ? glprogram->last_vert->source : NULL, state, 0), NULL);
+         gl4es_glCompileShader(fpe->vert);
+         gl4es_glGetShaderiv(fpe->vert, GL_COMPILE_STATUS, &status);
+         if(status!=GL_TRUE) {
+@@ -467,7 +485,7 @@ program_t* APIENTRY_GL4ES fpe_CustomShader(program_t* glprogram, fpe_state_t* st
+             return glprogram;   // fallback to non-customized custom program..
+         }
+         fpe->frag = gl4es_glCreateShader(GL_FRAGMENT_SHADER);
+-        gl4es_glShaderSource(fpe->frag, 1, fpe_CustomFragmentShader(glprogram->last_frag->source, state), NULL);
++        gl4es_glShaderSource(fpe->frag, 1, fpe_CustomFragmentShader((glprogram->last_frag && glprogram->last_frag->source) ? glprogram->last_frag->source : NULL, state), NULL);
+         gl4es_glCompileShader(fpe->frag);
+         gl4es_glGetShaderiv(fpe->frag, GL_COMPILE_STATUS, &status);
+         if(status!=GL_TRUE) {
+@@ -544,7 +562,7 @@ program_t* APIENTRY_GL4ES fpe_CustomShader_DefaultVertex(program_t* glprogram, f
+             return glprogram;   // fallback to non-customized custom program..
+         }
+         fpe->frag = gl4es_glCreateShader(GL_FRAGMENT_SHADER);
+-        gl4es_glShaderSource(fpe->frag, 1, fpe_CustomFragmentShader(glprogram->last_frag->source, state_vertex), NULL);
++        gl4es_glShaderSource(fpe->frag, 1, fpe_CustomFragmentShader((glprogram->last_frag && glprogram->last_frag->source) ? glprogram->last_frag->source : NULL, state_vertex), NULL);
+         gl4es_glCompileShader(fpe->frag);
+         gl4es_glGetShaderiv(fpe->frag, GL_COMPILE_STATUS, &status);
+         if(status!=GL_TRUE) {
+diff --git a/src/gl/fpe_shader.c b/src/gl/fpe_shader.c
+index dc7ebb1..8b64a7a 100644
+--- a/src/gl/fpe_shader.c
++++ b/src/gl/fpe_shader.c
+@@ -1631,6 +1631,9 @@ const char* const* fpe_FragmentShader(shaderconv_need_t* need, fpe_state_t *stat
+ 
+ const char* const* fpe_CustomVertexShader(const char* initial, fpe_state_t* state, int default_fragment)
+ {
++    if (!initial) {
++        return fpe_VertexShader(NULL, state);
++    }
+     int planes = state->plane;
+     char buff[1024];
+     if(!shad_cap) shad_cap = 1024;
+@@ -1695,6 +1698,9 @@ if(default_fragment) printf("fpe_CustomVertexShader(%p, %p, %d)\n%s\ncolor=%d\n"
+ }
+ const char* const* fpe_CustomFragmentShader(const char* initial, fpe_state_t* state)
+ {
++    if (!initial) {
++        return fpe_FragmentShader(NULL, state);
++    }
+     // the shader is unconverted yet!
+     if(!shad_cap) shad_cap = 1024;
+     if(!shad) shad = (char*)malloc(shad_cap);
 diff --git a/src/gl/oldprogram.c b/src/gl/oldprogram.c
 index 39aa58a..104a165 100644
 --- a/src/gl/oldprogram.c

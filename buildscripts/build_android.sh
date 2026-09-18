@@ -116,6 +116,10 @@ if [ ! -f "$DEPS_PREFIX/lib/libSDL3.so" ]; then
             git clone --depth 1 https://github.com/libsdl-org/SDL "$SRC_CACHE/SDL"
         fi
     fi
+    if [ -f "$ROOT_DIR/buildscripts/patches/sdl3_stack_size.patch" ]; then
+        echo "Applying SDL3 16MB thread stack patch..."
+        (cd "$SRC_CACHE/SDL" && git apply --ignore-whitespace "$ROOT_DIR/buildscripts/patches/sdl3_stack_size.patch" || true)
+    fi
     cmake -B "$DEPS_ROOT/build-sdl3-$ABI" -S "$SRC_CACHE/SDL" \
         -DCMAKE_TOOLCHAIN_FILE="$TOOLCHAIN_FILE" \
         -DANDROID_ABI="$ABI" \
@@ -192,7 +196,7 @@ if [ ! -f "$DEPS_PREFIX/lib/libGL.so" ]; then
     fi
     if [ -f "$ROOT_DIR/buildscripts/patches/gl4es_fix_arb_programs.patch" ]; then
         echo "Applying gl4es ARB program crash fix patch..."
-        (cd "$SRC_CACHE/gl4es" && git apply "$ROOT_DIR/buildscripts/patches/gl4es_fix_arb_programs.patch" 2>/dev/null || true)
+        (cd "$SRC_CACHE/gl4es" && git apply --ignore-whitespace "$ROOT_DIR/buildscripts/patches/gl4es_fix_arb_programs.patch" || true)
     fi
     cmake -B "$DEPS_ROOT/build-gl4es-$ABI" -S "$SRC_CACHE/gl4es" \
         -DCMAKE_TOOLCHAIN_FILE="$TOOLCHAIN_FILE" \
