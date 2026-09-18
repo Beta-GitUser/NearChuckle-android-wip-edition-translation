@@ -100,6 +100,8 @@ public class GameActivity extends SDLActivity {
             Os.setenv("LIBGL_NORMALIZE", "1", true);
             Os.setenv("LIBGL_NOTEXMAT", "0", true);
             Os.setenv("LIBGL_NODOWNSAMPLING", "1", true);
+            Os.setenv("LIBGL_LOGSHADERERROR", "1", true);
+            Os.setenv("LIBGL_NOPSA", "1", true);
         } catch (ErrnoException e) {
             Log.e(TAG, "Failed setting gl4es environment variables", e);
         }

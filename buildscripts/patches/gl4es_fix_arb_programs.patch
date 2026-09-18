@@ -14,7 +14,7 @@ index 2243472..beffb87 100644
  
  #endif // _GL4ES_MAIN_CONFIG_H
 diff --git a/src/gl/fpe.c b/src/gl/fpe.c
-index 7d53643..49f97dc 100644
+index 7d53643..8e2f828 100644
 --- a/src/gl/fpe.c
 +++ b/src/gl/fpe.c
 @@ -302,11 +302,27 @@ void APIENTRY_GL4ES fpe_oldprogram(fpe_state_t* state) {
@@ -104,32 +104,43 @@ index 7d53643..49f97dc 100644
          gl4es_glCompileShader(fpe->frag);
          gl4es_glGetShaderiv(fpe->frag, GL_COMPILE_STATUS, &status);
          if(status!=GL_TRUE) {
-@@ -1401,36 +1419,32 @@ void realize_glenv(int ispoint, int first, int count, GLenum type, const void* i
+@@ -1401,36 +1419,40 @@ void realize_glenv(int ispoint, int first, int count, GLenum type, const void* i
          }
      }
      // oldprograms
 -    if(glprogram->last_vert && glprogram->last_vert->old) {
 -        if(glprogram->has_vtx_progenv) {
 -            for (int i=0; i<MAX_VTX_PROG_ENV_PARAMS; ++i)
--                GoUniformfv(glprogram, glprogram->vtx_progenv[i], 4, 1, glstate->glsl->vtx_env_params+i*4);
--        }
++    if(glprogram->has_vtx_progenv) {
++        for (int i=0; i<MAX_VTX_PROG_ENV_PARAMS; ++i) {
++            if(glprogram->vtx_progenv[i] != -1)
+                 GoUniformfv(glprogram, glprogram->vtx_progenv[i], 4, 1, glstate->glsl->vtx_env_params+i*4);
+         }
 -        if(glprogram->has_vtx_progloc) {
 -            for (int i=0; i<MAX_VTX_PROG_LOC_PARAMS; ++i)
--                GoUniformfv(glprogram, glprogram->vtx_progloc[i], 4, 1, glprogram->last_vert->old->prog_local_params+i*4);
--        }
-+    if(glprogram->has_vtx_progenv) {
-+        for (int i=0; i<MAX_VTX_PROG_ENV_PARAMS; ++i)
-+            GoUniformfv(glprogram, glprogram->vtx_progenv[i], 4, 1, glstate->glsl->vtx_env_params+i*4);
++    }
++    if(glprogram->last_vert && glprogram->last_vert->old && glprogram->has_vtx_progloc) {
++        for (int i=0; i<MAX_VTX_PROG_LOC_PARAMS; ++i) {
++            if(glprogram->vtx_progloc[i] != -1)
+                 GoUniformfv(glprogram, glprogram->vtx_progloc[i], 4, 1, glprogram->last_vert->old->prog_local_params+i*4);
+         }
      }
 -    if(glprogram->last_frag && glprogram->last_frag->old) {
 -        if(glprogram->has_frg_progenv) {
 -            for (int i=0; i<MAX_FRG_PROG_ENV_PARAMS; ++i)
--                GoUniformfv(glprogram, glprogram->frg_progenv[i], 4, 1, glstate->glsl->frg_env_params+i*4);
--        }
++    if(glprogram->has_frg_progenv) {
++        for (int i=0; i<MAX_FRG_PROG_ENV_PARAMS; ++i) {
++            if(glprogram->frg_progenv[i] != -1)
+                 GoUniformfv(glprogram, glprogram->frg_progenv[i], 4, 1, glstate->glsl->frg_env_params+i*4);
+         }
 -        if(glprogram->has_frg_progloc) {
 -            for (int i=0; i<MAX_FRG_PROG_LOC_PARAMS; ++i)
--                GoUniformfv(glprogram, glprogram->frg_progloc[i], 4, 1, glprogram->last_frag->old->prog_local_params+i*4);
--        }
++    }
++    if(glprogram->last_frag && glprogram->last_frag->old && glprogram->has_frg_progloc) {
++        for (int i=0; i<MAX_FRG_PROG_LOC_PARAMS; ++i) {
++            if(glprogram->frg_progloc[i] != -1)
+                 GoUniformfv(glprogram, glprogram->frg_progloc[i], 4, 1, glprogram->last_frag->old->prog_local_params+i*4);
+         }
 -        #define GO(A)   \
 -        if(glprogram->has_samplers ## A) {                                      \
 -            for (int i=0; i<MAX_TEX; ++i)                                       \
@@ -140,18 +151,7 @@ index 7d53643..49f97dc 100644
 -        GO(3d)
 -        GO(Cube)
 -        #undef GO
-+    if(glprogram->last_vert && glprogram->last_vert->old && glprogram->has_vtx_progloc) {
-+        for (int i=0; i<MAX_VTX_PROG_LOC_PARAMS; ++i)
-+            GoUniformfv(glprogram, glprogram->vtx_progloc[i], 4, 1, glprogram->last_vert->old->prog_local_params+i*4);
-+    }
-+    if(glprogram->has_frg_progenv) {
-+        for (int i=0; i<MAX_FRG_PROG_ENV_PARAMS; ++i)
-+            GoUniformfv(glprogram, glprogram->frg_progenv[i], 4, 1, glstate->glsl->frg_env_params+i*4);
      }
-+    if(glprogram->last_frag && glprogram->last_frag->old && glprogram->has_frg_progloc) {
-+        for (int i=0; i<MAX_FRG_PROG_LOC_PARAMS; ++i)
-+            GoUniformfv(glprogram, glprogram->frg_progloc[i], 4, 1, glprogram->last_frag->old->prog_local_params+i*4);
-+    }
 +    #define GO(A)   \
 +    if(glprogram->has_samplers ## A) {                                      \
 +        for (int i=0; i<MAX_TEX; ++i)                                       \
@@ -165,7 +165,15 @@ index 7d53643..49f97dc 100644
      // set VertexAttrib if needed
      for(int i=0; i<hardext.maxvattrib; i++) 
      if(glprogram->va_size[i])   // only check used VA...
-@@ -1832,18 +1846,19 @@ int builtin_CheckUniform(program_t *glprogram, char* name, GLint id, int size) {
+@@ -1742,6 +1764,7 @@ const char* blend_color_code = "_gl4es_BlendColor";
+ int builtin_CheckUniform(program_t *glprogram, char* name, GLint id, int size) {
+     if(strncmp(name, gl4es_code, strlen(gl4es_code)))
+         return 0;   // doesn't start with "_gl4es_", no need to look further
++    LOAD_GLES2(glGetUniformLocation);
+     int builtin = isBuiltinMatrix(name);
+     // check matrices
+     if(builtin!=-1) {
+@@ -1832,18 +1855,19 @@ int builtin_CheckUniform(program_t *glprogram, char* name, GLint id, int size) {
          glprogram->builtin_instanceID = id;
          return 1;
      }
@@ -192,7 +200,7 @@ index 7d53643..49f97dc 100644
          if(n>=0 && n<hardext.maxplanes) {
              glprogram->builtin_clipplanes[n] = id;
              glprogram->has_builtin_clipplanes = 1;
-@@ -1877,22 +1892,22 @@ int builtin_CheckUniform(program_t *glprogram, char* name, GLint id, int size) {
+@@ -1877,22 +1901,22 @@ int builtin_CheckUniform(program_t *glprogram, char* name, GLint id, int size) {
      if(strncmp(name, texenvcolor_code, strlen(texenvcolor_code))==0) {
          // it a TexEnvColor! grab it's number
          int l = strlen(texenvcolor_code);
@@ -224,7 +232,7 @@ index 7d53643..49f97dc 100644
      if(strncmp(name, texgeneyestart_code, strlen(texgeneyestart_code))==0) {
          for (int i=0; i<4; i++) {
              char tmp[100];
-@@ -2048,90 +2063,86 @@ int builtin_CheckUniform(program_t *glprogram, char* name, GLint id, int size) {
+@@ -2048,90 +2072,134 @@ int builtin_CheckUniform(program_t *glprogram, char* name, GLint id, int size) {
          return 1;
      }
      // oldprogram
@@ -233,18 +241,29 @@ index 7d53643..49f97dc 100644
 -        int n = name[l]-'0';
 -        if(name[l+1]>='0' && name[l+1]<='9')
 -            n = n*10 + name[l+1]-'0';
--        glprogram->has_vtx_progenv = 1;
++    if(strcmp(name, "_gl4es_Vertex_ProgramEnv")==0) {
+         glprogram->has_vtx_progenv = 1;
 -        for (int i=0; i<n; ++i)
 -            glprogram->vtx_progenv[i] = id+i;
-+    if(strcmp(name, "_gl4es_Vertex_ProgramEnv")==0 || strncmp(name, vtx_progenv_arr, strlen(vtx_progenv_arr))==0) {
-+        if(!glprogram->has_vtx_progenv) {
-+            int count = (size > 0 && size <= MAX_VTX_PROG_ENV_PARAMS) ? size : MAX_VTX_PROG_ENV_PARAMS;
-+            glprogram->has_vtx_progenv = 1;
-+            for (int i=0; i<count; ++i)
-+                glprogram->vtx_progenv[i] = id+i;
++        glprogram->vtx_progenv[0] = id;
++        if(gles_glGetUniformLocation) {
++            for (int i=1; i<MAX_VTX_PROG_ENV_PARAMS; ++i) {
++                char elem_name[64];
++                sprintf(elem_name, "_gl4es_Vertex_ProgramEnv[%d]", i);
++                GLint loc = gles_glGetUniformLocation(glprogram->id, elem_name);
++                glprogram->vtx_progenv[i] = (loc != -1) ? loc : (id + i);
++            }
 +        }
          return 1;
      }
++    if(strncmp(name, vtx_progenv_arr, strlen(vtx_progenv_arr))==0) {
++        int idx = atoi(name + strlen(vtx_progenv_arr));
++        if(idx>=0 && idx<MAX_VTX_PROG_ENV_PARAMS) {
++            glprogram->has_vtx_progenv = 1;
++            glprogram->vtx_progenv[idx] = id;
++            return 1;
++        }
++    }
      if(strncmp(name, vtx_progenv_noa, strlen(vtx_progenv_noa))==0) {
          int l = strlen(vtx_progenv_noa);
 -        int n = name[l]-'0';
@@ -265,18 +284,29 @@ index 7d53643..49f97dc 100644
 -        int n = name[l]-'0';
 -        if(name[l+1]>='0' && name[l+1]<='9')
 -            n = n*10 + name[l+1]-'0';
--        glprogram->has_vtx_progloc = 1;
++    if(strcmp(name, "_gl4es_Vertex_ProgramLocal")==0) {
+         glprogram->has_vtx_progloc = 1;
 -        for (int i=0; i<n; ++i)
 -            glprogram->vtx_progloc[i] = id+i;
-+    if(strcmp(name, "_gl4es_Vertex_ProgramLocal")==0 || strncmp(name, vtx_progloc_arr, strlen(vtx_progloc_arr))==0) {
-+        if(!glprogram->has_vtx_progloc) {
-+            int count = (size > 0 && size <= MAX_VTX_PROG_LOC_PARAMS) ? size : MAX_VTX_PROG_LOC_PARAMS;
-+            glprogram->has_vtx_progloc = 1;
-+            for (int i=0; i<count; ++i)
-+                glprogram->vtx_progloc[i] = id+i;
++        glprogram->vtx_progloc[0] = id;
++        if(gles_glGetUniformLocation) {
++            for (int i=1; i<MAX_VTX_PROG_LOC_PARAMS; ++i) {
++                char elem_name[64];
++                sprintf(elem_name, "_gl4es_Vertex_ProgramLocal[%d]", i);
++                GLint loc = gles_glGetUniformLocation(glprogram->id, elem_name);
++                glprogram->vtx_progloc[i] = (loc != -1) ? loc : (id + i);
++            }
 +        }
          return 1;
      }
++    if(strncmp(name, vtx_progloc_arr, strlen(vtx_progloc_arr))==0) {
++        int idx = atoi(name + strlen(vtx_progloc_arr));
++        if(idx>=0 && idx<MAX_VTX_PROG_LOC_PARAMS) {
++            glprogram->has_vtx_progloc = 1;
++            glprogram->vtx_progloc[idx] = id;
++            return 1;
++        }
++    }
      if(strncmp(name, vtx_progloc_noa, strlen(vtx_progloc_noa))==0) {
          int l = strlen(vtx_progloc_noa);
 -        int n = name[l]-'0';
@@ -297,18 +327,29 @@ index 7d53643..49f97dc 100644
 -        int n = name[l]-'0';
 -        if(name[l+1]>='0' && name[l+1]<='9')
 -            n = n*10 + name[l+1]-'0';
--        glprogram->has_frg_progenv = 1;
++    if(strcmp(name, "_gl4es_Fragment_ProgramEnv")==0) {
+         glprogram->has_frg_progenv = 1;
 -        for (int i=0; i<n; ++i)
 -            glprogram->frg_progenv[i] = id+i;
-+    if(strcmp(name, "_gl4es_Fragment_ProgramEnv")==0 || strncmp(name, frg_progenv_arr, strlen(frg_progenv_arr))==0) {
-+        if(!glprogram->has_frg_progenv) {
-+            int count = (size > 0 && size <= MAX_FRG_PROG_ENV_PARAMS) ? size : MAX_FRG_PROG_ENV_PARAMS;
-+            glprogram->has_frg_progenv = 1;
-+            for (int i=0; i<count; ++i)
-+                glprogram->frg_progenv[i] = id+i;
++        glprogram->frg_progenv[0] = id;
++        if(gles_glGetUniformLocation) {
++            for (int i=1; i<MAX_FRG_PROG_ENV_PARAMS; ++i) {
++                char elem_name[64];
++                sprintf(elem_name, "_gl4es_Fragment_ProgramEnv[%d]", i);
++                GLint loc = gles_glGetUniformLocation(glprogram->id, elem_name);
++                glprogram->frg_progenv[i] = (loc != -1) ? loc : (id + i);
++            }
 +        }
          return 1;
      }
++    if(strncmp(name, frg_progenv_arr, strlen(frg_progenv_arr))==0) {
++        int idx = atoi(name + strlen(frg_progenv_arr));
++        if(idx>=0 && idx<MAX_FRG_PROG_ENV_PARAMS) {
++            glprogram->has_frg_progenv = 1;
++            glprogram->frg_progenv[idx] = id;
++            return 1;
++        }
++    }
      if(strncmp(name, frg_progenv_noa, strlen(frg_progenv_noa))==0) {
          int l = strlen(frg_progenv_noa);
 -        int n = name[l]-'0';
@@ -329,18 +370,29 @@ index 7d53643..49f97dc 100644
 -        int n = name[l]-'0';
 -        if(name[l+1]>='0' && name[l+1]<='9')
 -            n = n*10 + name[l+1]-'0';
--        glprogram->has_frg_progloc = 1;
++    if(strcmp(name, "_gl4es_Fragment_ProgramLocal")==0) {
+         glprogram->has_frg_progloc = 1;
 -        for (int i=0; i<n; ++i)
 -            glprogram->frg_progloc[i] = id+i;
-+    if(strcmp(name, "_gl4es_Fragment_ProgramLocal")==0 || strncmp(name, frg_progloc_arr, strlen(frg_progloc_arr))==0) {
-+        if(!glprogram->has_frg_progloc) {
-+            int count = (size > 0 && size <= MAX_FRG_PROG_LOC_PARAMS) ? size : MAX_FRG_PROG_LOC_PARAMS;
-+            glprogram->has_frg_progloc = 1;
-+            for (int i=0; i<count; ++i)
-+                glprogram->frg_progloc[i] = id+i;
++        glprogram->frg_progloc[0] = id;
++        if(gles_glGetUniformLocation) {
++            for (int i=1; i<MAX_FRG_PROG_LOC_PARAMS; ++i) {
++                char elem_name[64];
++                sprintf(elem_name, "_gl4es_Fragment_ProgramLocal[%d]", i);
++                GLint loc = gles_glGetUniformLocation(glprogram->id, elem_name);
++                glprogram->frg_progloc[i] = (loc != -1) ? loc : (id + i);
++            }
 +        }
          return 1;
      }
++    if(strncmp(name, frg_progloc_arr, strlen(frg_progloc_arr))==0) {
++        int idx = atoi(name + strlen(frg_progloc_arr));
++        if(idx>=0 && idx<MAX_FRG_PROG_LOC_PARAMS) {
++            glprogram->has_frg_progloc = 1;
++            glprogram->frg_progloc[idx] = id;
++            return 1;
++        }
++    }
      if(strncmp(name, frg_progloc_noa, strlen(frg_progloc_noa))==0) {
          int l = strlen(frg_progloc_noa);
 -        int n = name[l]-'0';
@@ -434,3 +486,85 @@ index 39aa58a..104a165 100644
          k = kh_get(oldprograms, oldprograms, id);
          if(k!=kh_end(oldprograms)) {
              freeOldProgram(kh_value(oldprograms, k));
+diff --git a/src/gl/program.c b/src/gl/program.c
+index 2eaeb02..5d0be90 100644
+--- a/src/gl/program.c
++++ b/src/gl/program.c
+@@ -558,38 +558,48 @@ static void fill_program(program_t *glprogram)
+             // remove any ending "[]" that could be present
+             if(name[strlen(name)-1]==']' && strrchr(name, '[')) (*strrchr(name, '['))='\0';
+             GLint id = gles_glGetUniformLocation(glprogram->id, name);
++            if(id == -1 && size > 1) {
++                char name0[strlen(name) + 8];
++                sprintf(name0, "%s[0]", name);
++                id = gles_glGetUniformLocation(glprogram->id, name0);
++            }
+             if(id!=-1) {
+                 for (int j = 0; j<size; j++) {
+-                    k = kh_put(uniformlist, uniforms, id, &ret);
++                    GLint cur_id = id;
++                    char* cur_name = NULL;
++                    if(j) {
++                        cur_name = malloc(strlen(name)+1+16);
++                        sprintf(cur_name, "%s[%d]", name, j);
++                        cur_id = gles_glGetUniformLocation(glprogram->id, cur_name);
++                        if(cur_id == -1) cur_id = id + j;
++                    } else {
++                        cur_name = strdup(name);
++                    }
++                    k = kh_put(uniformlist, uniforms, cur_id, &ret);
+                     gluniform = kh_value(uniforms, k) = malloc(sizeof(uniform_t));
+                     memset(gluniform, 0, sizeof(uniform_t));
+-                    if(j) {
+-                        gluniform->name = malloc(strlen(name)+1+5);
+-                        sprintf(gluniform->name, "%s[%d]", name, j);
+-                    } else
+-                        gluniform->name = strdup(name);
+-                    gluniform->id = id;
++                    gluniform->name = cur_name;
++                    gluniform->id = cur_id;
+                     gluniform->internal_id = i;
+                     gluniform->size = size-j;
+                     gluniform->type = type;
+                     gluniform->cache_offs = uniform_cache+j*uniformsize(type);
+                     gluniform->cache_size = uniformsize(type)*(size-j);
+-                    gluniform->builtin = builtin_CheckUniform(glprogram, name, id, size-j);
++                    gluniform->builtin = builtin_CheckUniform(glprogram, cur_name, cur_id, size-j);
+                     // TextureUnit grabbing...
+                     if(type==GL_SAMPLER_CUBE) {
+-                        glprogram->texunits[tu_idx].id = id;
++                        glprogram->texunits[tu_idx].id = cur_id;
+                         glprogram->texunits[tu_idx].type=TU_CUBE;
+                         glprogram->texunits[tu_idx].req_tu = glprogram->texunits[tu_idx].act_tu = 0;
+                         ++tu_idx;
+                     } else if (type==GL_SAMPLER_2D) {
+-                        glprogram->texunits[tu_idx].id = id;
++                        glprogram->texunits[tu_idx].id = cur_id;
+                         glprogram->texunits[tu_idx].type=TU_TEX2D;
+                         glprogram->texunits[tu_idx].req_tu = glprogram->texunits[tu_idx].act_tu = 0;
+                         ++tu_idx;
+                     }
+-                    DBG(printf(" uniform #%d : \"%s\"%s type=%s size=%d\n", id, gluniform->name, gluniform->builtin?" (builtin) ":"", PrintEnum(gluniform->type), gluniform->size);)
++                    DBG(printf(" uniform #%d : \"%s\"%s type=%s size=%d\n", cur_id, gluniform->name, gluniform->builtin?" (builtin) ":"", PrintEnum(gluniform->type), gluniform->size);)
+                     if(gluniform->size==1) ++glprogram->num_uniform;
+-                    id++;
+                 }
+                 uniform_cache += uniformsize(type)*size;
+             }
+diff --git a/src/gl/uniform.c b/src/gl/uniform.c
+index 98b5614..449dc63 100644
+--- a/src/gl/uniform.c
++++ b/src/gl/uniform.c
+@@ -176,6 +176,12 @@ void GoUniformfv(program_t *glprogram, GLint location, int size, int count, cons
+     uniform_t *m;
+     k = kh_get(uniformlist, glprogram->uniform, location);
+     if (k==kh_end(glprogram->uniform)) {
++        LOAD_GLES2(glUniform4fv);
++        if (gles_glUniform4fv && size == 4 && count > 0) {
++            gles_glUniform4fv(location, count, value);
++            noerrorShim();
++            return;
++        }
+         errorShim(GL_INVALID_OPERATION);
+         return;
+     }

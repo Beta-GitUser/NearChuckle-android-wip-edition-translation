@@ -235,7 +235,10 @@ public class CrashHandler implements Thread.UncaughtExceptionHandler {
 
     private static String readLogcatTail(int maxLines) {
         List<String> lines = new ArrayList<>();
+        int myPid = android.os.Process.myPid();
         String[] cmdOptions = new String[]{
+                "/system/bin/logcat -d --pid=" + myPid + " -t " + maxLines,
+                "logcat -d --pid=" + myPid + " -t " + maxLines,
                 "/system/bin/logcat -d -t " + maxLines,
                 "logcat -d -t " + maxLines,
                 "/system/bin/logcat -d -v time -t " + maxLines
