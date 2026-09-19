@@ -93,7 +93,7 @@ public:
 	//void RemoveFlags(int nFlags) { m_Props.nFlags&=~nFlags; }
 	bool NotLoaded() { return (m_Data.m_pData==NULL) && (!m_pReadStream); }
 	bool Loaded() { return (m_Data.m_pData!=NULL); }
-	bool Loading() { return (m_Data.m_pData==NULL) && (m_pReadStream!=NULL); }
+	bool Loading() { return (m_Data.m_pData==NULL) && (m_pReadStream); }
 	bool LoadFailure() { return m_bLoadFailure; }
 };
 

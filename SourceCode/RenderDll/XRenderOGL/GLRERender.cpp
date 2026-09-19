@@ -1279,7 +1279,6 @@ void CREFlare::mfDrawCorona(SShader *ef, CFColor &col)
           {
             if (!slw->m_FShader->mfSet(true, slw))
             {
-              slw->m_FShader = NULL;
               rd->m_RP.m_PersFlags &= ~(RBPF_PS1NEEDSET | RBPF_PS2NEEDSET);
             }
           }

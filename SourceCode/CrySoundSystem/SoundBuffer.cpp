@@ -357,9 +357,9 @@ void CSoundBuffer::StreamOnComplete(IReadStream *pStream, unsigned nError)
 {
 	GUARD_HEAP;
 	FUNCTION_PROFILER( m_pSoundSystem->GetSystem(),PROFILE_SOUND );
-	m_pReadStream = NULL;
 	if (nError)
 	{
+		m_pReadStream = 0;
 		m_bLoadFailure=true;
 		LoadFailed();
 		return;
@@ -373,6 +373,7 @@ void CSoundBuffer::StreamOnComplete(IReadStream *pStream, unsigned nError)
 #endif
   if (!pSample)
 	{
+		m_pReadStream = 0;
 		m_pSoundSystem->m_pILog->LogToFile("Warning: Cannot load sample sound %s\n", m_Props.sName.c_str());
 		m_bLoadFailure=true;
 		LoadFailed();
@@ -382,6 +383,7 @@ void CSoundBuffer::StreamOnComplete(IReadStream *pStream, unsigned nError)
 	SetSample(pSample);
   //CS_Sample_SetMode(pSample, m_bLooping ? CS_LOOP_NORMAL : CS_LOOP_OFF);
   CS_Sample_SetMode(pSample, GetFModFlags(m_bLooping));
+	m_pReadStream = 0;
 	SoundLoaded();
 	//TRACE("Sound-Streaming for %s finished.", m_Props.sName.c_str());
 }

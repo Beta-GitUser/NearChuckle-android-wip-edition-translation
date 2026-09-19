@@ -55,6 +55,15 @@ jobs:
           ./buildscripts/build_android.sh --arch arm64 --release --ndk "${{ steps.setup-ndk.outputs.ndk-path }}" 2>&1 | tee build_native.log
           echo "### ✅ Native Build Succeeded" >> $GITHUB_STEP_SUMMARY
 
+      - name: Print Native error log on failure
+        if: failure()
+        shell: bash
+        run: |
+          if [ -f build_native.log ]; then
+            echo "====================== NATIVE BUILD ERROR LOG ======================"
+            grep -E -C 3 "error:|FAILED:|CMake Error" build_native.log | tail -n 120 || tail -n 120 build_native.log
+          fi
+
       - name: Build APK with Gradle
         shell: bash
         run: |

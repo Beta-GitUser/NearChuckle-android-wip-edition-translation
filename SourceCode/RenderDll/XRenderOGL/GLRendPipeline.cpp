@@ -4539,7 +4539,6 @@ void CGLRenderer::EF_DrawLightPasses_PS30(SShaderTechnique *hs, SShader *ef, int
         {
           if (!slw->m_FShader->mfSet(true, slw))
           {
-            slw->m_FShader = NULL;
             m_RP.m_PersFlags &= ~RBPF_PS1NEEDSET;
           }
         }
@@ -4855,7 +4854,6 @@ void CGLRenderer::EF_DrawLightPasses(SShaderTechnique *hs, SShader *ef, int nSta
         {
           if (!slw->m_FShader->mfSet(true, slw))
           {
-            slw->m_FShader = NULL;
             m_RP.m_PersFlags &= ~(RBPF_PS1NEEDSET | RBPF_PS2NEEDSET | RBPF_TSNEEDSET);
           }
         }
@@ -5513,7 +5511,6 @@ void CGLRenderer::EF_DrawShadowPasses(SShaderTechnique *hs, SShader *ef, int nSt
         {
           if (!slw->m_FShader->mfSet(true, slw))
           {
-            slw->m_FShader = NULL;
             m_RP.m_PersFlags &= ~(RBPF_PS1NEEDSET | RBPF_PS2NEEDSET | RBPF_TSNEEDSET);
           }
         }
@@ -5746,7 +5743,6 @@ void CGLRenderer::EF_DrawGeneralPasses(SShaderTechnique *hs, SShader *ef, bool b
       {
         if (!slw->m_FShader->mfSet(true, slw))
         {
-          slw->m_FShader = NULL;
           m_RP.m_PersFlags &= ~(RBPF_PS1NEEDSET | RBPF_PS2NEEDSET | RBPF_TSNEEDSET);
         }
       }
