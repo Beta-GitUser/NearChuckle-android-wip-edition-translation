@@ -6,6 +6,7 @@ import android.app.AlertDialog;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -13,9 +14,11 @@ import android.os.Environment;
 import android.provider.Settings;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.util.DisplayMetrics;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.Window;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
@@ -462,11 +465,18 @@ public class LauncherActivity extends Activity {
         AlertDialog dialog = builder.create();
 
         TextView tvCurrent = dialogView.findViewById(R.id.tv_picker_current_path);
+        TextView tvStatus = dialogView.findViewById(R.id.tv_picker_status);
         ListView lvItems = dialogView.findViewById(R.id.lv_folder_items);
         Button btnSelect = dialogView.findViewById(R.id.btn_picker_select);
         Button btnCancel = dialogView.findViewById(R.id.btn_picker_cancel);
 
-        final File[] currentDir = new File[]{Environment.getExternalStorageDirectory()};
+        // Start in currently entered folder if valid, otherwise external storage
+        String currentInput = editGamePath.getText().toString().trim();
+        File initialDir = new File(currentInput);
+        if (!initialDir.exists() || !initialDir.isDirectory()) {
+            initialDir = Environment.getExternalStorageDirectory();
+        }
+        final File[] currentDir = new File[]{initialDir};
         final List<String> itemNames = new ArrayList<>();
         final List<File> itemFiles = new ArrayList<>();
 
@@ -489,8 +499,44 @@ public class LauncherActivity extends Activity {
                 }
             }
 
-            ArrayAdapter<String> adapter = new ArrayAdapter<>(this,
-                    android.R.layout.simple_list_item_1, itemNames);
+            // Check if Far Cry files are present in the currently selected directory
+            if (tvStatus != null) {
+                File fcData = new File(currentDir[0], "FCData");
+                File levels = new File(currentDir[0], "Levels");
+                File[] paks = currentDir[0].listFiles((dir, name) -> name.toLowerCase().endsWith(".pak"));
+                boolean hasFiles = (fcData.exists() && fcData.isDirectory()) ||
+                                   (levels.exists() && levels.isDirectory()) ||
+                                   (paks != null && paks.length > 0);
+                if (hasFiles) {
+                    tvStatus.setText("✔ Файлы Far Cry обнаружены в этой папке!");
+                    tvStatus.setTextColor(Color.rgb(80, 220, 100));
+                } else {
+                    tvStatus.setText("Выберите папку, куда скопирована игра Far Cry (FCData, Levels)");
+                    tvStatus.setTextColor(Color.rgb(180, 190, 200));
+                }
+            }
+
+            ArrayAdapter<String> adapter = new ArrayAdapter<String>(this,
+                    android.R.layout.simple_list_item_1, itemNames) {
+                @NonNull
+                @Override
+                public View getView(int position, View convertView, @NonNull ViewGroup parent) {
+                    TextView tv = (TextView) super.getView(position, convertView, parent);
+                    tv.setTextColor(Color.WHITE);
+                    tv.setTextSize(14f);
+                    int padH = (int) (12 * getResources().getDisplayMetrics().density);
+                    int padV = (int) (8 * getResources().getDisplayMetrics().density);
+                    tv.setPadding(padH, padV, padH, padV);
+                    String name = itemNames.get(position);
+                    if (name.startsWith("..")) {
+                        tv.setText("📁  " + name);
+                        tv.setTextColor(Color.rgb(120, 200, 255));
+                    } else {
+                        tv.setText("📁  " + name);
+                    }
+                    return tv;
+                }
+            };
             lvItems.setAdapter(adapter);
         };
 
@@ -510,6 +556,16 @@ public class LauncherActivity extends Activity {
         });
 
         btnCancel.setOnClickListener(v -> dialog.dismiss());
+
+        dialog.setOnShowListener(d -> {
+            Window window = dialog.getWindow();
+            if (window != null) {
+                DisplayMetrics dm = getResources().getDisplayMetrics();
+                int width = (int) (dm.widthPixels * 0.90);
+                int height = (int) (dm.heightPixels * 0.90);
+                window.setLayout(width, height);
+            }
+        });
 
         dialog.show();
     }
