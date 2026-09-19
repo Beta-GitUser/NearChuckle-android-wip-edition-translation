@@ -554,7 +554,7 @@ bool CGLRenderer::ChangeResolution(int nNewWidth, int nNewHeight, int nNewColDep
 {
 #ifdef __ANDROID__
   int winW = 0, winH = 0;
-  if (m_RContexts[0] && m_RContexts[0]->m_Window)
+  if (m_RContexts.Num() && m_RContexts[0] && m_RContexts[0]->m_Window)
   {
     SDL_GetWindowSizeInPixels(m_RContexts[0]->m_Window, &winW, &winH);
   }
@@ -567,6 +567,11 @@ bool CGLRenderer::ChangeResolution(int nNewWidth, int nNewHeight, int nNewColDep
   m_height = winH;
   m_FullScreen = true;
   ChangeViewport(0, 0, winW, winH);
+  if (iConsole)
+  {
+    if (ICVar* cvW = iConsole->GetCVar("r_Width")) cvW->Set(winW);
+    if (ICVar* cvH = iConsole->GetCVar("r_Height")) cvH->Set(winH);
+  }
   return true;
 #else
   m_FullScreen = bFullScreen;
@@ -651,6 +656,18 @@ bool CGLRenderer::ChangeDisplay(unsigned int width,unsigned int height,unsigned 
 //////////////////////////////////////////////////////////////////////
 void CGLRenderer::ChangeViewport(unsigned int x,unsigned int y,unsigned int width,unsigned int height)
 {
+#ifdef USE_SDL
+  if (x == 0 && y == 0 && m_RContexts.Num() && m_RContexts[0] && m_RContexts[0]->m_Window)
+  {
+    int winW = 0, winH = 0;
+    SDL_GetWindowSizeInPixels(m_RContexts[0]->m_Window, &winW, &winH);
+    if (winW > 0 && winH > 0 && (width <= 0 || (int)width == m_width || width == 800 || width == 1024))
+    {
+      width = winW;
+      height = winH;
+    }
+  }
+#endif
   SetViewport(x, y, width, height);
   m_width = width;
   m_height = height;
@@ -2247,13 +2264,53 @@ void CGLRenderer::SetViewport(int x, int y, int width, int height)
 {
   if (!x && !y && !width && !height)
   {
+#ifdef USE_SDL
+    if (m_RContexts.Num() && m_RContexts[0] && m_RContexts[0]->m_Window)
+    {
+      int winW = 0, winH = 0;
+      SDL_GetWindowSizeInPixels(m_RContexts[0]->m_Window, &winW, &winH);
+      if (winW > 0 && winH > 0)
+      {
+        m_VWidth = m_width = winW;
+        m_VHeight = m_height = winH;
+      }
+    }
+#endif
+    int gl_y = m_VY;
+    if (!m_RP.m_bDrawToTexture && m_height > 0)
+    {
+      gl_y = m_height - m_VY - m_VHeight;
+      if (gl_y < 0) gl_y = 0;
+    }
     if(glViewport)
-      glViewport(m_VX, m_VY, m_VWidth, m_VHeight);
+      glViewport(m_VX, gl_y, m_VWidth, m_VHeight);
     return;
   }
 
+#ifdef USE_SDL
+  if (x == 0 && y == 0 && m_RContexts.Num() && m_RContexts[0] && m_RContexts[0]->m_Window)
+  {
+    int winW = 0, winH = 0;
+    SDL_GetWindowSizeInPixels(m_RContexts[0]->m_Window, &winW, &winH);
+    if (winW > 0 && winH > 0 && (width <= 0 || width == m_width || width == 800 || width == 1024))
+    {
+      width = winW;
+      height = winH;
+      m_width = winW;
+      m_height = winH;
+    }
+  }
+#endif
+
+  int gl_y = y;
+  if (!m_RP.m_bDrawToTexture && m_height > 0)
+  {
+    gl_y = m_height - y - height;
+    if (gl_y < 0) gl_y = 0;
+  }
+
   if(glViewport)
-    glViewport(x, y, width, height);
+    glViewport(x, gl_y, width, height);
 
   m_VX = x;
   m_VY = y;

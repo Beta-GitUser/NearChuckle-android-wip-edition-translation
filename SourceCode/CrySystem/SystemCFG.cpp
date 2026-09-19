@@ -106,6 +106,14 @@ void CSystem::SaveConfiguration()
 	if (!m_pGame)
 		return;
 
+#ifdef __ANDROID__
+	if (m_rDriver) m_rDriver->Set("OpenGL");
+	if (ICVar* cvNoPS20 = m_pConsole->GetCVar("r_NoPS20")) cvNoPS20->Set(0);
+	if (ICVar* cvBump = m_pConsole->GetCVar("r_Quality_BumpMapping")) cvBump->Set(3);
+	if (ICVar* cvNV30 = m_pConsole->GetCVar("r_GL_NV30_PS20")) cvNV30->Set(1);
+	if (ICVar* cvFS = m_pConsole->GetCVar("r_Fullscreen")) cvFS->Set(1);
+#endif
+
 	string sSave=m_rDriver->GetString();
 	if(m_sSavedRDriver!="")
 		m_rDriver->Set(m_sSavedRDriver.c_str());
@@ -185,6 +193,38 @@ void CSystemConfiguration::ParseSystemConfig()
 					if( string::npos != posValueStart && string::npos != posValueEnd )
 					{
 						string strValue( strLine, posValueStart, posValueEnd - posValueStart );						
+
+#ifdef __ANDROID__
+						// Prevent desktop PC settings in system.cfg from breaking mobile environment:
+						if (strcasecmp(strKey.c_str(), "r_Driver") == 0)
+						{
+							m_pSystem->GetILog()->Log("Android: ignoring system.cfg '%s'='%s' (keeping OpenGL)", strKey.c_str(), strValue.c_str());
+							continue;
+						}
+						if (strcasecmp(strKey.c_str(), "r_Width") == 0 || strcasecmp(strKey.c_str(), "r_Height") == 0)
+						{
+							m_pSystem->GetILog()->Log("Android: ignoring system.cfg '%s'='%s' (using native window size)", strKey.c_str(), strValue.c_str());
+							continue;
+						}
+						if (strcasecmp(strKey.c_str(), "r_Fullscreen") == 0)
+						{
+							continue;
+						}
+						if (strcasecmp(strKey.c_str(), "r_NoPS20") == 0 && atoi(strValue.c_str()) != 0)
+						{
+							m_pSystem->GetILog()->Log("Android: ignoring system.cfg r_NoPS20=1 (must remain 0)");
+							continue;
+						}
+						if (strcasecmp(strKey.c_str(), "r_Quality_BumpMapping") == 0 && atoi(strValue.c_str()) < 3)
+						{
+							m_pSystem->GetILog()->Log("Android: overriding system.cfg r_Quality_BumpMapping to 3");
+							strValue = "3";
+						}
+						if (strcasecmp(strKey.c_str(), "r_GL_NV30_PS20") == 0 && atoi(strValue.c_str()) == 0)
+						{
+							continue;
+						}
+#endif
 						
 						ICVar *pCvar=m_pSystem->GetIConsole()->GetCVar(strKey.c_str(),false);		// false=not case sensitive (slow but more convenient)
 						if (pCvar)

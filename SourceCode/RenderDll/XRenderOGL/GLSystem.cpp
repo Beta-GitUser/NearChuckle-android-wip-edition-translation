@@ -2560,8 +2560,41 @@ exr:
 
   SetGamma(CV_r_gamma+m_fDeltaGamma, CV_r_brightness, CV_r_contrast);
 
+#ifdef USE_SDL
+  int actualW = 0, actualH = 0;
+  if (m_RContexts.Num() && m_RContexts[0] && m_RContexts[0]->m_Window)
+  {
+    SDL_GetWindowSizeInPixels(m_RContexts[0]->m_Window, &actualW, &actualH);
+    if (actualW <= 0 || actualH <= 0)
+      SDL_GetWindowSize(m_RContexts[0]->m_Window, &actualW, &actualH);
+  }
+  if (actualW > 0 && actualH > 0)
+  {
+    m_width = actualW;
+    m_height = actualH;
+  }
+  else if (m_width <= 0 || m_height <= 0)
+  {
+    m_width = width;
+    m_height = height;
+  }
+#else
   m_width = width;
   m_height = height;
+#endif
+
+  m_VX = 0;
+  m_VY = 0;
+  m_VWidth = m_width;
+  m_VHeight = m_height;
+
+  SetViewport(0, 0, m_width, m_height);
+
+  if (iConsole)
+  {
+    if (ICVar* cvW = iConsole->GetCVar("r_Width")) cvW->Set(m_width);
+    if (ICVar* cvH = iConsole->GetCVar("r_Height")) cvH->Set(m_height);
+  }
 
   InitVAR();
 

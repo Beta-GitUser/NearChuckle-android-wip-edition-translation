@@ -542,6 +542,11 @@ bool CSystem::InitRenderer(WIN_HINSTANCE hinst, WIN_HWND hwnd,const char *szCmdL
 		if (m_hWnd)
 		{
 			CryLogAlways("InitRenderer: m_pRenderer->Init SUCCEEDED, handle=%p", m_hWnd);
+#ifdef USE_SDL
+			m_rWidth->Set(m_pRenderer->GetWidth());
+			m_rHeight->Set(m_pRenderer->GetHeight());
+			CryLogAlways("InitRenderer: updated resolution to %dx%d", m_pRenderer->GetWidth(), m_pRenderer->GetHeight());
+#endif
 			return true;
 		}
 		CryLogAlways("Error: m_pRenderer->Init failed and returned NULL!");
@@ -1248,6 +1253,14 @@ bool CSystem::Init( const SSystemInitParams &params )
 
 	LoadConfiguration("system.cfg");
 	LoadConfiguration("SystemCfgOverride.Cfg");
+
+#ifdef __ANDROID__
+	if (m_rDriver) m_rDriver->Set("OpenGL");
+	if (ICVar* cvNoPS20 = m_pConsole->GetCVar("r_NoPS20")) cvNoPS20->Set(0);
+	if (ICVar* cvBump = m_pConsole->GetCVar("r_Quality_BumpMapping")) cvBump->Set(3);
+	if (ICVar* cvNV30 = m_pConsole->GetCVar("r_GL_NV30_PS20")) cvNV30->Set(1);
+	if (ICVar* cvFS = m_pConsole->GetCVar("r_Fullscreen")) cvFS->Set(1);
+#endif
 
 	//////////////////////////////////////////////////////////////////////////
 	// After loading configuration.
