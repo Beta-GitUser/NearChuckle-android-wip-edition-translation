@@ -441,9 +441,6 @@ public class LauncherActivity extends Activity {
             tvGamePathStatus.setTextColor(getColor(R.color.status_red));
             return;
         }
-            tvGamePathStatus.setTextColor(getColor(R.color.status_red));
-            return;
-        }
 
         // Clean any problematic system.cfg in game folder and profiles
         cleanSystemConfigFiles(path);
