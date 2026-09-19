@@ -62,6 +62,9 @@ public class GameActivity extends SDLActivity {
         Log.i(TAG, "Renderer Mesa Zink: " + useZink);
         Log.i(TAG, "GPU Driver: " + (selectedDriver != null ? selectedDriver.getName() : "System Default"));
 
+        // Clean any problematic system.cfg before native engine starts
+        LauncherActivity.cleanSystemConfigFiles(gamePath);
+
         // 1. Set Far Cry Working directory and Module search path
         String nativeLibDir = getApplicationInfo().nativeLibraryDir;
         try {
@@ -204,6 +207,9 @@ public class GameActivity extends SDLActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         CrashHandler.init(this);
+        SharedPreferences prefs = getSharedPreferences(LauncherActivity.PREFS_NAME, MODE_PRIVATE);
+        String gamePath = prefs.getString(LauncherActivity.KEY_GAME_PATH, "");
+        LauncherActivity.cleanSystemConfigFiles(gamePath);
         super.onCreate(savedInstanceState);
 
         // Extend edge-to-edge across the camera notch / display cutout
@@ -312,6 +318,11 @@ public class GameActivity extends SDLActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        try {
+            SharedPreferences prefs = getSharedPreferences(LauncherActivity.PREFS_NAME, MODE_PRIVATE);
+            String gamePath = prefs.getString(LauncherActivity.KEY_GAME_PATH, "");
+            LauncherActivity.cleanSystemConfigFiles(gamePath);
+        } catch (Throwable ignored) {}
         // Ensure clean exit of native engine
         Process.killProcess(Process.myPid());
     }

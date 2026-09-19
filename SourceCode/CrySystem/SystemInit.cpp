@@ -1266,8 +1266,17 @@ bool CSystem::Init( const SSystemInitParams &params )
 	//Load config files
 	//////////////////////////////////////////////////////////////////////////
 
+#ifndef __ANDROID__
 	LoadConfiguration("system.cfg");
 	LoadConfiguration("SystemCfgOverride.Cfg");
+#else
+	CryLogAlways("Android: completely ignoring and deleting system.cfg / SystemCfgOverride.Cfg");
+	remove("system.cfg");
+	remove("System.cfg");
+	remove("SYSTEM.CFG");
+	remove("SystemCfgOverride.Cfg");
+	remove("systemcfgoverride.cfg");
+#endif
 
 #ifdef __ANDROID__
 	if (m_rDriver) m_rDriver->Set("OpenGL");

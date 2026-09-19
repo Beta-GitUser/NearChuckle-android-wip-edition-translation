@@ -1710,6 +1710,18 @@ void CXGame::SaveConfiguration( const char *pszSystemCfg,const char *pszGameCfg,
 		sGameCfg=path+sProfileName+"_"+sGameCfg;
 	}
 
+#ifdef __ANDROID__
+	// Never write system.cfg on Android, delete it if present
+	if (!sSystemCfg.empty())
+	{
+		remove(sSystemCfg.c_str());
+	}
+	remove("system.cfg");
+	remove("System.cfg");
+	remove("SYSTEM.CFG");
+	remove("SystemCfgOverride.Cfg");
+	remove("systemcfgoverride.cfg");
+#else
 	FILE *pFile=fxopen(sSystemCfg.c_str(), "wb");
 	if (pFile)
 	{
@@ -1720,6 +1732,7 @@ void CXGame::SaveConfiguration( const char *pszSystemCfg,const char *pszGameCfg,
 		//m_pConsole->DumpCVars(&SaveDump);
 		fclose(pFile); 
 	}
+#endif
 
 	if (m_pIActionMapManager)
 	{

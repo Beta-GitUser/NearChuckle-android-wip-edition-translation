@@ -3383,7 +3383,11 @@ int CScriptObjectGame::GetMeleeHit(IFunctionHandler *pH)
 //////////////////////////////////////////////////////////////////////////
 bool CScriptObjectGame::_GetProfileFileNames( IFunctionHandler *pH, string &outSystem, string &outGame, const char *insCallerName )
 { 
+#ifdef __ANDROID__
+	outSystem="";
+#else
 	outSystem="system.cfg";
+#endif
 	outGame="game.cfg";
 
 	string path = m_pGame->GetPlayerProfilePath();
@@ -3403,7 +3407,11 @@ bool CScriptObjectGame::_GetProfileFileNames( IFunctionHandler *pH, string &outS
 
 		string sName;
 
+#ifndef __ANDROID__
 		outSystem=path+sProfileName+"_"+outSystem;
+#else
+		outSystem="";
+#endif
 		outGame=path+sProfileName+"_"+outGame;
 	}
 	return true;
@@ -3440,6 +3448,10 @@ int CScriptObjectGame::LoadConfiguration(IFunctionHandler *pH)
 	//m_pScriptSystem->ExecuteFile(sSystemCfg.c_str(),true,true);
 	//m_pScriptSystem->ExecuteFile(sGameCfg.c_str(),true,true);
 
+#ifdef __ANDROID__
+	sSystemCfg = "";
+#endif
+
 	m_pGame->LoadConfiguration(sSystemCfg,sGameCfg);
 
 	return pH->EndFunction();
@@ -3458,6 +3470,10 @@ int CScriptObjectGame::LoadConfigurationEx(IFunctionHandler *pH)
 
 		pH->GetParam(1, szSystemConfig);
 		pH->GetParam(2, szGameConfig);
+
+#ifdef __ANDROID__
+		szSystemConfig = 0;
+#endif
 
 		if (szSystemConfig && szGameConfig)
 		{
@@ -3497,6 +3513,13 @@ int CScriptObjectGame::SaveConfiguration(IFunctionHandler *pH)
 			pH->GetParam(1, szProfileName);
 	}
 	
+#ifdef __ANDROID__
+	sSystemCfg = "";
+	remove("system.cfg");
+	remove("System.cfg");
+	remove("SYSTEM.CFG");
+#endif
+
 	// profile is already specified in the string
 	m_pGame->SaveConfiguration(sSystemCfg.c_str(),sGameCfg.c_str(),NULL);
 

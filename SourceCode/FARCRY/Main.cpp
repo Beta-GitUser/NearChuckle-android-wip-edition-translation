@@ -209,6 +209,12 @@ void SetMasterCDFolder()
 	{
 		SetModulePath(pModPath);
 	}
+	// Automatically delete system.cfg as requested by user because it breaks mobile game
+	remove("system.cfg");
+	remove("System.cfg");
+	remove("SYSTEM.CFG");
+	remove("SystemCfgOverride.Cfg");
+	remove("systemcfgoverride.cfg");
 #else
 	char* last_slash;
 	char dll_path[_MAX_PATH];

@@ -442,6 +442,9 @@ public class LauncherActivity extends Activity {
             return;
         }
 
+        // Clean any problematic system.cfg in game folder and profiles
+        cleanSystemConfigFiles(path);
+
         // Check for FCData or Levels or pak files
         File fcData = new File(folder, "FCData");
         File levels = new File(folder, "Levels");
@@ -674,8 +677,60 @@ public class LauncherActivity extends Activity {
     }
 
     private void startGameActivity() {
+        String gamePath = editGamePath.getText().toString().trim();
+        cleanSystemConfigFiles(gamePath);
         Intent intent = new Intent(this, GameActivity.class);
         startActivity(intent);
+    }
+
+    /**
+     * Automatically remove system.cfg and systemcfgoverride.cfg files because they
+     * cause crashes and break graphics on Android mobile environment.
+     */
+    public static void cleanSystemConfigFiles(String gamePath) {
+        if (gamePath == null || gamePath.trim().isEmpty()) return;
+        try {
+            File dir = new File(gamePath);
+            if (!dir.exists() || !dir.isDirectory()) return;
+
+            // Delete system.cfg and systemcfgoverride.cfg in root
+            File[] files = dir.listFiles();
+            if (files != null) {
+                for (File f : files) {
+                    if (f.isFile()) {
+                        String name = f.getName().toLowerCase();
+                        if (name.equals("system.cfg") || name.equals("systemcfgoverride.cfg")) {
+                            boolean deleted = f.delete();
+                            android.util.Log.i("FarCry", "Cleaned problematic config: " + f.getAbsolutePath() + " (deleted=" + deleted + ")");
+                        }
+                    }
+                }
+            }
+
+            // Also check Profiles directory
+            File profilesDir = new File(dir, "Profiles");
+            if (profilesDir.exists() && profilesDir.isDirectory()) {
+                cleanProfilesFolder(profilesDir);
+            }
+        } catch (Throwable t) {
+            android.util.Log.w("FarCry", "Failed to clean system configs: " + t.getMessage());
+        }
+    }
+
+    private static void cleanProfilesFolder(File folder) {
+        File[] files = folder.listFiles();
+        if (files == null) return;
+        for (File f : files) {
+            if (f.isDirectory()) {
+                cleanProfilesFolder(f);
+            } else if (f.isFile()) {
+                String name = f.getName().toLowerCase();
+                if (name.endsWith("system.cfg") || name.equals("systemcfgoverride.cfg")) {
+                    boolean deleted = f.delete();
+                    android.util.Log.i("FarCry", "Cleaned profile config: " + f.getAbsolutePath() + " (deleted=" + deleted + ")");
+                }
+            }
+        }
     }
 
     private void requestStoragePermissions() {

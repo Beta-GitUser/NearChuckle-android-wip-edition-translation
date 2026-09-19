@@ -107,13 +107,24 @@ void CSystem::SaveConfiguration()
 		return;
 
 #ifdef __ANDROID__
-	if (m_rDriver) m_rDriver->Set("OpenGL");
-	if (ICVar* cvNoPS20 = m_pConsole->GetCVar("r_NoPS20")) cvNoPS20->Set(0);
-	if (ICVar* cvBump = m_pConsole->GetCVar("r_Quality_BumpMapping")) cvBump->Set(3);
-	if (ICVar* cvNV30 = m_pConsole->GetCVar("r_GL_NV30_PS20")) cvNV30->Set(1);
-	if (ICVar* cvFS = m_pConsole->GetCVar("r_Fullscreen")) cvFS->Set(1);
-#endif
+	// Never create or save system.cfg on Android as it corrupts mobile configuration
+	// Delete any existing system.cfg files
+	remove("system.cfg");
+	remove("System.cfg");
+	remove("SYSTEM.CFG");
+	remove("SystemCfgOverride.Cfg");
+	remove("systemcfgoverride.cfg");
 
+	// Save game.cfg only (keybindings, sensitivity)
+	ICVar *pProfile=m_pConsole->GetCVar("g_playerprofile");
+	if (pProfile)
+	{	
+		const char *sProfileName=pProfile->GetString();
+		m_pGame->SaveConfiguration( "","game.cfg",sProfileName);
+	}
+	m_pGame->SaveConfiguration( "","game.cfg",NULL);
+	return;
+#else
 	string sSave=m_rDriver->GetString();
 	if(m_sSavedRDriver!="")
 		m_rDriver->Set(m_sSavedRDriver.c_str());
@@ -130,6 +141,7 @@ void CSystem::SaveConfiguration()
 	m_pGame->SaveConfiguration( "system.cfg","game.cfg",NULL);
 
 	m_rDriver->Set(sSave.c_str());
+#endif
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -160,6 +172,17 @@ CSystemConfiguration::~CSystemConfiguration()
 void CSystemConfiguration::ParseSystemConfig()
 {
 	//m_pScriptSystem->ExecuteFile(sFilename.c_str(),false);
+
+#ifdef __ANDROID__
+	// Completely ignore and delete system.cfg / systemcfgoverride.cfg
+	string sLowerPath = m_strSysConfigFilePath;
+	std::transform(sLowerPath.begin(), sLowerPath.end(), sLowerPath.begin(), ::tolower);
+	if (sLowerPath.find("system.cfg") != string::npos || sLowerPath.find("systemcfgoverride.cfg") != string::npos)
+	{
+		remove(m_strSysConfigFilePath.c_str());
+		return;
+	}
+#endif
 
 	FILE *pFile=fxopen(m_strSysConfigFilePath.c_str(), "rb");
 	if (!pFile)
@@ -259,6 +282,16 @@ void CSystem::LoadConfiguration(const string &sFilename)
 {
 	if (!sFilename.empty())
 	{	
+#ifdef __ANDROID__
+		string sLower = sFilename;
+		std::transform(sLower.begin(), sLower.end(), sLower.begin(), ::tolower);
+		if (sLower.find("system.cfg") != string::npos || sLower.find("systemcfgoverride.cfg") != string::npos)
+		{
+			if (m_pLog) m_pLog->Log("Android: ignoring and removing configuration file '%s'", sFilename.c_str());
+			remove(sFilename.c_str());
+			return;
+		}
+#endif
 		//m_pScriptSystem->ExecuteFile(sFilename.c_str(),false);
 		m_pLog->Log("Loading system configuration");
 		CSystemConfiguration tempConfig(sFilename,this);
