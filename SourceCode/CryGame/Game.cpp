@@ -1261,6 +1261,8 @@ void CXGame::ProcessPMessages(const char *szMsg)
 		if (stricmp(szMsg,"EndDemoQuit") == 0)
 		{
 			m_bUpdateRet = false;
+			if (m_pSystem)
+				m_pSystem->Quit();
 		}
 		else
 		{
@@ -1269,9 +1271,12 @@ void CXGame::ProcessPMessages(const char *szMsg)
 		return;
 	}
 	else
-	if (stricmp(szMsg,"Quit-Yes") == 0)	// quit message
+	if ((stricmp(szMsg,"Quit-Yes") == 0) || (stricmp(szMsg,"Quit") == 0))	// quit message
 	{
+		CryLogAlways("CXGame::ProcessPMessages: Quitting game via '%s'", szMsg);
 		m_bUpdateRet = false;
+		if (m_pSystem)
+			m_pSystem->Quit();
 		return;
 	}
 	else
@@ -1586,6 +1591,14 @@ void CXGame::LoadLevelCS(bool keepclient, const char *szMapName, const char *szM
 		m_pSystem->GetILog()->Log("UISystem: Enabled 3D Engine!");
 	}
 
+	if (m_pSystem->GetIMusicSystem())
+	{
+		m_pSystem->GetIMusicSystem()->Silence();
+	}
+	if (m_pSystem->GetISoundSystem())
+	{
+		m_pSystem->GetISoundSystem()->Silence();
+	}
 
 	if (m_pSystem->GetIMovieSystem())
 		m_pSystem->GetIMovieSystem()->StopAllCutScenes();
@@ -1921,6 +1934,18 @@ void CXGame::MenuOn()
 //////////////////////////////////////////////////////////////////////////
 void CXGame::MenuOff()
 {
+	if (m_pUISystem && m_pUISystem->IsEnabled())
+	{
+		m_pUISystem->StopAllVideo();
+		m_pSystem->GetIInput()->RemoveEventListener(m_pUISystem);
+		m_pSystem->GetIInput()->ClearKeyState();
+		m_pUISystem->GetScriptObjectUI()->OnSwitch(0);
+
+		if (GetMyPlayer())
+			m_XAreaMgr.ReTriggerArea(GetMyPlayer(), GetMyPlayer()->GetPos(),false);
+		//					m_XAreaMgr.ReTriggerArea(GetMyPlayer(), m_pSystem->GetISoundSystem()->GetListenerPos(),false);
+	}
+
 	// resume sounds and timers affected by game pause
 	ISoundSystem* snd = m_pSystem->GetISoundSystem();
 	IMusicSystem* mus = m_pSystem->GetIMusicSystem();
@@ -1934,18 +1959,6 @@ void CXGame::MenuOff()
 	}
 
 	m_pScriptTimerMgr->Pause(false);
-
-
-	if (m_pUISystem && m_pUISystem->IsEnabled())
-	{
-		m_pSystem->GetIInput()->RemoveEventListener(m_pUISystem);
-		m_pSystem->GetIInput()->ClearKeyState();
-		m_pUISystem->GetScriptObjectUI()->OnSwitch(0);
-
-		if (GetMyPlayer())
-			m_XAreaMgr.ReTriggerArea(GetMyPlayer(), GetMyPlayer()->GetPos(),false);
-		//					m_XAreaMgr.ReTriggerArea(GetMyPlayer(), m_pSystem->GetISoundSystem()->GetListenerPos(),false);
-	}
 
 	m_bMenuOverlay = 0;
 	m_bMapLoadedFromCheckpoint = false;

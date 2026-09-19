@@ -70,6 +70,14 @@ jobs:
           chmod +x android/gradlew
           echo "sdk.dir=$ANDROID_HOME" > android/local.properties
           echo "ndk.dir=${{ steps.setup-ndk.outputs.ndk-path }}" >> android/local.properties
+          if [ -f android/app/farcry.keystore ]; then
+            echo "Verifying project signing keystore..."
+            keytool -list -keystore android/app/farcry.keystore -storepass android || {
+              echo "Re-generating standardized keystore..."
+              rm -f android/app/farcry.keystore
+              keytool -genkeypair -v -keystore android/app/farcry.keystore -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 -storepass android -keypass android -dname "CN=NearChuckle, OU=FarCry, O=NearChuckle, C=US"
+            }
+          fi
           echo "Building APK with Gradle..."
           ./android/gradlew -p android :app:assembleRelease --stacktrace 2>&1 | tee build_apk.log
           echo "### ✅ Gradle Build Succeeded" >> $GITHUB_STEP_SUMMARY

@@ -708,6 +708,8 @@ DLL_API signed char     F_API CS_Stream_Close(CS_STREAM* stream)
 		return 0;
 	}
 
+	CS_Stream_Stop(stream);
+
 	for (it = streams.begin(); it != streams.end(); it++)
 	{
 		if (*it == strm)
@@ -936,13 +938,23 @@ static int BytesFromBinkDec(char* buffer, int len)
 
 static void UpdateStream(ALStream_t* stream)
 {
+	if (!stream || stream->channel == CS_FREE)
+	{
+		return;
+	}
+
 	ALenum state;
+	alGetSourcei(stream->source, AL_SOURCE_STATE, &state);
+	if (state == AL_PAUSED)
+	{
+		return;
+	}
+
 	ALuint buffer, stream_buf;
 	int i, bytes_processed;
 	int num_processed_buffers = 0;
 	int num_queued_buffers = 0;
 
-	alGetSourcei(stream->source, AL_SOURCE_STATE, &state);
 	alGetSourcei(stream->source, AL_BUFFERS_PROCESSED, &num_processed_buffers);
 
 	for (i = 0; i < num_processed_buffers; i++)
@@ -978,7 +990,7 @@ static void UpdateStream(ALStream_t* stream)
 				alGetSourcei(stream->source, AL_BUFFERS_QUEUED, &num_queued_buffers);
 			}
 
-			if (state != AL_PLAYING && state != AL_PAUSED)
+			if (state != AL_PLAYING && state != AL_PAUSED && stream->channel != CS_FREE)
 			{
 				alSourcePlay(stream->source);
 			}
@@ -1300,7 +1312,7 @@ DLL_API int             F_API CS_PlaySoundEx(int channel, CS_SAMPLE *sptr, CS_DS
 DLL_API signed char     F_API CS_StopSound(int channel)
 {
 	size_t i;
-	if (channel < 0)
+	if (channel < 0 && channel != CS_FREE)
 		return 0;
 
 	if (channel == CS_FREE)
@@ -1310,11 +1322,23 @@ DLL_API signed char     F_API CS_StopSound(int channel)
 			alSourceStop(sources[i]);
 			alSourcei(sources[i], AL_BUFFER, 0);
 		}
+		for (i = 0; i < streams.size(); i++)
+		{
+			CS_Stream_Stop((CS_STREAM*)streams[i]);
+		}
 		return 1;
 	}
 
 	if (channel >= MAX_SOURCES)
 	{
+		for (i = 0; i < streams.size(); i++)
+		{
+			if (streams[i]->channel == channel)
+			{
+				CS_Stream_Stop((CS_STREAM*)streams[i]);
+				return 1;
+			}
+		}
 		return SOURCE_OUT_OF_BOUNDS;
 	}
 

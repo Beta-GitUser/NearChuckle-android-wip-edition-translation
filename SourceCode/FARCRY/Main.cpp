@@ -1055,5 +1055,13 @@ bool RunGame(int argc, char** argv)
 #endif WIN32
 	}
 
+#if defined(__ANDROID__)
+	if (!bRelaunch)
+	{
+		CryLogAlways("Main: Application finished normally, exiting process");
+		exit(0);
+	}
+#endif
+
 	return true;
 }
