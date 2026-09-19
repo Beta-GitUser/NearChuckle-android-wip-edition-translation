@@ -104,6 +104,12 @@ void AuthCheckFunction( void *data )
 //
 
 static ISystem *g_pISystem=NULL;
+
+ISystem* GetISystem()
+{
+	return g_pISystem;
+}
+
 static bool g_bSystemRelaunch = false;
 static char szMasterCDFolder[_MAX_PATH];
 
@@ -951,9 +957,11 @@ bool RunGame(int argc, char** argv)
 #endif
 //////////////////////////////////////////////////////////////////////////
 
-		CryLogAlways("Main: Invoking pGame->Run()");
+		if (g_pISystem && g_pISystem->GetILog())
+			g_pISystem->GetILog()->Log("Main: Invoking pGame->Run()");
 		pGame->Run(bRelaunch);
-		CryLogAlways("Main: pGame->Run() completed (bRelaunch=%d)", (int)bRelaunch);
+		if (g_pISystem && g_pISystem->GetILog())
+			g_pISystem->GetILog()->Log("Main: pGame->Run() completed (bRelaunch=%d)", (int)bRelaunch);
 
 		// remove the previous cmdline in case we relaunch
 		memset(szLocalCmdLine,0,MAX_CMDLINE_LEN);
