@@ -213,7 +213,9 @@ public class TurnipDriverManager {
             cleanName = cleanName.substring(0, cleanName.length() - 4);
         }
         info.setName(cleanName);
-        info.setDescription("Пользовательский Turnip Vulkan драйвер из архива " + fileName);
+        boolean isRu = java.util.Locale.getDefault().getLanguage().equals("ru");
+        info.setDescription(isRu ? ("Пользовательский Turnip Vulkan драйвер из архива " + fileName)
+                                 : ("Custom Turnip Vulkan driver from " + fileName));
         info.setAuthor("Mesa / Freedreno");
         info.setVendor("Mesa");
         info.setDriverVersion("Custom");

@@ -56,14 +56,14 @@ public class CrashReportActivity extends Activity {
         if (report == null || report.trim().isEmpty()) {
             // Generate live diagnostics if no crash report was recorded
             report = CrashHandler.generateDiagnosticsReport(this);
-            tvSummary.setText("Диагностические данные и логи работы движка Far Cry");
+            tvSummary.setText(R.string.crash_report_diagnostic_summary);
         } else if (!report.contains("CRYENGINE LOG")) {
             // Signal handler generated raw crash dump: enrich with system specs, engine log tail, and logcat
             report = CrashHandler.buildCrashReport(this, "FAR CRY ANDROID NATIVE CRASH", report);
             CrashHandler.saveCrashReport(this, report);
-            tvSummary.setText("Нажмите 'Скопировать весь отчет', чтобы отправить его для анализа");
+            tvSummary.setText(R.string.crash_report_hint);
         } else {
-            tvSummary.setText("Нажмите 'Скопировать весь отчет', чтобы отправить его для анализа");
+            tvSummary.setText(R.string.crash_report_hint);
         }
 
         currentReportText = report;
@@ -82,14 +82,14 @@ public class CrashReportActivity extends Activity {
             shareIntent.setType("text/plain");
             shareIntent.putExtra(Intent.EXTRA_SUBJECT, "Far Cry Android Crash Report");
             shareIntent.putExtra(Intent.EXTRA_TEXT, currentReportText);
-            startActivity(Intent.createChooser(shareIntent, "Отправить отчет через..."));
+            startActivity(Intent.createChooser(shareIntent, getString(R.string.crash_report_share_title)));
         });
 
         btnClear.setOnClickListener(v -> {
             CrashHandler.clearCrashReport(this);
             currentReportText = "";
-            tvLogText.setText("(Отчет об ошибке очищен)");
-            Toast.makeText(this, "Отчет очищен", Toast.LENGTH_SHORT).show();
+            tvLogText.setText(R.string.crash_report_cleared);
+            Toast.makeText(this, R.string.crash_report_toast_cleared, Toast.LENGTH_SHORT).show();
         });
 
         btnClose.setOnClickListener(v -> finish());

@@ -90,7 +90,8 @@ public class OscTouchLook extends View {
                 canvas.drawRoundRect(bounds, corner, corner, paint);
             }
 
-            canvas.drawText("Область обзора (Камера)", w / 2f, h / 2f, textPaint);
+            boolean isRu = java.util.Locale.getDefault().getLanguage().equals("ru");
+            canvas.drawText(isRu ? "Область обзора (Камера)" : "Camera / Look Area", w / 2f, h / 2f, textPaint);
         }
         // In gameplay mode, the look pad is transparent to not block view
     }

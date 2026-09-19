@@ -35,12 +35,15 @@ public class EditToolbarView extends LinearLayout {
         int pad = dpToPx(8);
         setPadding(pad, pad, pad, pad);
 
+        boolean isRu = java.util.Locale.getDefault().getLanguage().equals("ru");
+
         // Header Title
         titleView = new TextView(context);
         titleView.setTextColor(Color.rgb(0, 255, 128));
         titleView.setTextSize(14f);
         titleView.setGravity(Gravity.CENTER);
-        titleView.setText("Режим редактирования: нажмите на кнопку для настройки");
+        titleView.setText(isRu ? "Режим редактирования: нажмите на кнопку для настройки"
+                               : "Edit Mode: tap a button to configure position and size");
         addView(titleView);
 
         // Controls row
@@ -48,13 +51,13 @@ public class EditToolbarView extends LinearLayout {
         row.setOrientation(HORIZONTAL);
         row.setGravity(Gravity.CENTER);
 
-        btnSizePlus = createButton("Размер +", v -> manager.changeSelectedSize(6));
-        btnSizeMinus = createButton("Размер -", v -> manager.changeSelectedSize(-6));
-        btnOpacityPlus = createButton("Прозр. +", v -> manager.changeSelectedOpacity(0.1f));
-        btnOpacityMinus = createButton("Прозр. -", v -> manager.changeSelectedOpacity(-0.1f));
-        btnVisibility = createButton("Скрыть", v -> manager.toggleSelectedVisibility());
-        btnReset = createButton("Сброс", v -> manager.resetLayout());
-        btnDone = createButton("ГОТОВО", v -> manager.toggleEditMode());
+        btnSizePlus = createButton(isRu ? "Размер +" : "Size +", v -> manager.changeSelectedSize(6));
+        btnSizeMinus = createButton(isRu ? "Размер -" : "Size -", v -> manager.changeSelectedSize(-6));
+        btnOpacityPlus = createButton(isRu ? "Прозр. +" : "Alpha +", v -> manager.changeSelectedOpacity(0.1f));
+        btnOpacityMinus = createButton(isRu ? "Прозр. -" : "Alpha -", v -> manager.changeSelectedOpacity(-0.1f));
+        btnVisibility = createButton(isRu ? "Скрыть" : "Hide", v -> manager.toggleSelectedVisibility());
+        btnReset = createButton(isRu ? "Сброс" : "Reset", v -> manager.resetLayout());
+        btnDone = createButton(isRu ? "ГОТОВО" : "DONE", v -> manager.toggleEditMode());
 
         btnDone.setBackgroundColor(Color.rgb(0, 150, 80));
         btnDone.setTextColor(Color.WHITE);
@@ -86,18 +89,25 @@ public class EditToolbarView extends LinearLayout {
     }
 
     public void updateSelectedInfo(OscElement element) {
+        boolean isRu = java.util.Locale.getDefault().getLanguage().equals("ru");
         if (element == null) {
-            titleView.setText("Нажмите на любую кнопку на экране, чтобы изменить её размер или положение");
-            btnVisibility.setText("Скрыть");
+            titleView.setText(isRu ? "Нажмите на любую кнопку на экране, чтобы изменить её размер или положение"
+                                   : "Tap any on-screen button to modify its position or size");
+            btnVisibility.setText(isRu ? "Скрыть" : "Hide");
             return;
         }
 
-        String visText = element.visible ? "Скрыть" : "Показать";
+        String visText = element.visible ? (isRu ? "Скрыть" : "Hide") : (isRu ? "Показать" : "Show");
         btnVisibility.setText(visText);
 
         int opacityPct = (int) (element.opacity * 100);
-        titleView.setText(String.format("Выбрано: %s | Размер: %ddp | Прозрачность: %d%% | %s",
-                element.label, element.sizeDp, opacityPct, (element.visible ? "Видима" : "Скрыта")));
+        if (isRu) {
+            titleView.setText(String.format("Выбрано: %s | Размер: %ddp | Прозрачность: %d%% | %s",
+                    element.label, element.sizeDp, opacityPct, (element.visible ? "Видима" : "Скрыта")));
+        } else {
+            titleView.setText(String.format("Selected: %s | Size: %ddp | Opacity: %d%% | %s",
+                    element.label, element.sizeDp, opacityPct, (element.visible ? "Visible" : "Hidden")));
+        }
     }
 
     private int dpToPx(int dp) {

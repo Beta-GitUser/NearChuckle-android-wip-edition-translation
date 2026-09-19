@@ -28,8 +28,9 @@ public class DriverInfo implements Serializable {
     public static DriverInfo createSystemDriver() {
         DriverInfo info = new DriverInfo();
         info.id = DRIVER_SYSTEM_ID;
-        info.name = "Системный Vulkan драйвер";
-        info.description = "Встроенный драйвер устройства (Qualcomm / Mali / PowerVR)";
+        boolean isRu = java.util.Locale.getDefault().getLanguage().equals("ru");
+        info.name = isRu ? "Системный Vulkan драйвер" : "System Vulkan Driver";
+        info.description = isRu ? "Встроенный драйвер устройства (Qualcomm / Mali / PowerVR)" : "Built-in device driver (Qualcomm / Mali / PowerVR)";
         info.author = "System";
         info.vendor = "System";
         info.driverVersion = "Default";
