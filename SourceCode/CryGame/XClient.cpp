@@ -332,16 +332,10 @@ void CXClient::OnXConnect()
 	TRACE("CXClient::OnXConnect");	
 	LoadPlayerDesc();
 
-/*	if (bDoSwitch)
+	if (m_pGame->m_bMapLoadedFromCheckpoint)
 	{
-		// TODO
-		// Check if this works
-		m_pGame->GetSystem()->GetIConsole()->SetScrollMax(600);
-		m_pGame->GetSystem()->GetIConsole()->ShowConsole(true);
-		//m_pGame->SendMessage("Switch");
-		bDoSwitch=false;
+		m_pGame->SendMessage("Switch");
 	}
-*/
 }
 
 ///////////////////////////////////////////////
@@ -649,7 +643,7 @@ void CXClient::OnXContextSetup(CStream &stm)
 	if(m_pGame->m_pSystem->GetIMusicSystem())
 		m_pGame->m_pSystem->GetIMusicSystem()->Silence();
 
-	if (!m_pGame->m_bIsLoadingLevelFromFile)
+	if (!m_pGame->m_bIsLoadingLevelFromFile || m_pGame->m_bMapLoadedFromCheckpoint)
 	{
 		if (m_pGame->IsMultiplayer())
 		{

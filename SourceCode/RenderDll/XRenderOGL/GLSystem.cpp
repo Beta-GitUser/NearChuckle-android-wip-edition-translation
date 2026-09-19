@@ -1699,6 +1699,17 @@ HWND CGLRenderer::SetMode(int x,int y,int width,int height,unsigned int cbpp, in
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 #endif
     Uint32 windowFlags = SDL_WINDOW_OPENGL;
+#ifdef __ANDROID__
+    SDL_DisplayID dispID = SDL_GetPrimaryDisplay();
+    const SDL_DisplayMode *mode = SDL_GetCurrentDisplayMode(dispID);
+    if (mode && mode->w > 0 && mode->h > 0)
+    {
+        int dispW = (mode->w > mode->h) ? mode->w : mode->h;
+        int dispH = (mode->w > mode->h) ? mode->h : mode->w;
+        width = dispW;
+        height = dispH;
+    }
+#endif
     m_width = width;
     m_height = height;
 

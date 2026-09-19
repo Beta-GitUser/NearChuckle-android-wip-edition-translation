@@ -1265,12 +1265,16 @@ void CXGame::ProcessPMessages(const char *szMsg)
 			// if this is a singleplayer game, and the player is alive, we can go back to game
 			// otherwise, if this is not multiplayer game and the player is dead, it is locked in the menu
 			// also, the client must not be loading, or waiting to connect
-			if (m_pClient && m_pClient->IsConnected() && m_pUISystem->GetScriptObjectUI()->CanSwitch(0))
+			if (m_bMapLoadedFromCheckpoint || (m_pClient && m_pClient->IsConnected() && m_pUISystem->GetScriptObjectUI()->CanSwitch(0)))
 			{
-				if (IsMultiplayer() || (!pPlayer || pPlayer->m_stats.health > 0))
+				if (m_bMapLoadedFromCheckpoint || IsMultiplayer() || (!pPlayer || pPlayer->m_stats.health > 0))
 				{
 					MenuOff();
 				}
+			}
+			else if (m_bMapLoadedFromCheckpoint)
+			{
+				SendMessage("Switch");
 			}
 		}	
 		else if (m_pUISystem->GetScriptObjectUI()->CanSwitch(1))
@@ -1910,6 +1914,7 @@ void CXGame::MenuOff()
 	}
 
 	m_bMenuOverlay = 0;
+	m_bMapLoadedFromCheckpoint = false;
 
 	m_pSystem->SetIProcess(m_p3DEngine);
 	m_pSystem->GetIProcess()->SetFlags(PROC_3DENGINE);

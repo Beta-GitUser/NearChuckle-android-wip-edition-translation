@@ -45,6 +45,10 @@
 #include "DataProbe.h"
 #include "ApplicationHelper.h"				// CApplicationHelper
 
+#if defined(USE_SDL)
+#include <SDL3/SDL.h>
+#endif
+
 #define  PROFILE_WITH_VTUNE
 
 //////////////////////////////////////////////////////////////////////////
@@ -538,6 +542,17 @@ bool CSystem::InitRenderer(WIN_HINSTANCE hinst, WIN_HWND hwnd,const char *szCmdL
 	if (m_pRenderer)
 	{
 		CryLogAlways("InitRenderer: invoking m_pRenderer->Init...");
+#if defined(USE_SDL) && defined(__ANDROID__)
+		SDL_DisplayID dispID = SDL_GetPrimaryDisplay();
+		const SDL_DisplayMode *mode = SDL_GetCurrentDisplayMode(dispID);
+		if (mode && mode->w > 0 && mode->h > 0)
+		{
+			int dw = (mode->w > mode->h) ? mode->w : mode->h;
+			int dh = (mode->w > mode->h) ? mode->h : mode->w;
+			m_rWidth->Set(dw);
+			m_rHeight->Set(dh);
+		}
+#endif
 		m_hWnd = m_pRenderer->Init(0, 0, m_rWidth->GetIVal(), m_rHeight->GetIVal(), m_rColorBits->GetIVal(), m_rDepthBits->GetIVal(), m_rStencilBits->GetIVal(), m_rFullscreen->GetIVal() ? true : false, hinst, hwnd);
 		if (m_hWnd)
 		{

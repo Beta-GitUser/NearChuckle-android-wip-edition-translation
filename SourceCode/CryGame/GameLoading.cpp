@@ -154,24 +154,31 @@ void LoadProperties(IScriptObject *table, CStream &stm, IScriptSystem *ss, const
 	ASSERT(ss);  // martin made me do it
 	for(;;)
 	{
-		char what;
-		stm.Read(what);
-		if(what==TABLE_END) return;     
+		char what = 0;
+		if (!stm.Read(what) || what == (char)TABLE_END) return;     
 
-		char iskey;
-		stm.Read(iskey);
+		char iskey = 0;
+		if (!stm.Read(iskey)) return;
 		int idx = 0;
 		string key;
-		iskey ? stm.Read(key) : stm.Read(idx);
+		if (iskey)
+		{
+			if (!stm.Read(key)) return;
+		}
+		else
+		{
+			if (!stm.Read(idx)) return;
+		}
 
 		switch(what)
 		{
-		case svtNull:   {                             iskey ? table->SetToNull(key.c_str())           : table->SetNullAt(idx);        break; };
-		case svtString: { string s; stm.Read(s); iskey ? table->SetValue(key.c_str(), s.c_str()) : table->SetAt(idx, s.c_str()); break; };
-		case svtNumber: { float f = 0;   stm.Read(f); iskey ? table->SetValue(key.c_str(), f)         : table->SetAt(idx, f);         break; }; 
-		case svtObject: { _SmartScriptObject t(ss);   iskey ? table->SetValue(key.c_str(), *t)         : table->SetAt(idx, *t);  LoadProperties(t, stm, ss, (char *)key.c_str()); break; }; 
+		case svtNull:   { iskey ? table->SetToNull(key.c_str()) : table->SetNullAt(idx); break; };
+		case svtString: { string s; if (stm.Read(s)) { iskey ? table->SetValue(key.c_str(), s.c_str()) : table->SetAt(idx, s.c_str()); } break; };
+		case svtNumber: { float f = 0; if (stm.Read(f)) { iskey ? table->SetValue(key.c_str(), f) : table->SetAt(idx, f); } break; }; 
+		case svtObject: { _SmartScriptObject t(ss); iskey ? table->SetValue(key.c_str(), *t) : table->SetAt(idx, *t); LoadProperties(t, stm, ss, (char *)key.c_str()); break; }; 
 		case svtUserData:
-		case svtFunction: TRACE("WARNING: can't restore userdata or function in properties table (%s.%s)", parent, key.c_str()); 
+		case svtFunction: TRACE("WARNING: can't restore userdata or function in properties table (%s.%s)", parent, key.c_str()); break;
+		default: return; // unrecognized variable type in stream, stop to avoid infinite loop
 		};
 	}; 
 };
@@ -828,14 +835,26 @@ bool CXGame::LoadFromStream(CStream &stm, bool isdemo)
 
 	// load saved cvars
 	string varname,val;
-	int nCount,i;
-	stm.Read(nCount);
+	int nCount = 0, i;
+	if (!stm.Read(nCount)) nCount = 0;
+	if (nCount < 0 || nCount > 10000) nCount = 0;
 	IConsole *pCon=m_pSystem->GetIConsole();	
 	for (i=0;i<nCount;i++)
 	{
-		if(stm.Read(varname))
-		if(stm.Read(val))
+		if(stm.Read(varname) && stm.Read(val))
 		{
+#ifdef __ANDROID__
+			// Ignore desktop cvars saved into savegames
+			if (strcasecmp(varname.c_str(), "r_Driver") == 0 ||
+			    strcasecmp(varname.c_str(), "r_Width") == 0 ||
+			    strcasecmp(varname.c_str(), "r_Height") == 0 ||
+			    strcasecmp(varname.c_str(), "r_Fullscreen") == 0 ||
+			    strcasecmp(varname.c_str(), "r_GL_NV30_PS20") == 0 ||
+			    strcasecmp(varname.c_str(), "r_NoPS20") == 0)
+			{
+				continue;
+			}
+#endif
 			ICVar *pCVar=m_pSystem->GetIConsole()->GetCVar(varname.c_str());
 			if (!pCVar)
 			{
@@ -858,10 +877,12 @@ bool CXGame::LoadFromStream(CStream &stm, bool isdemo)
 		pVar->Set(3);
 	if (ICVar* pVar = m_pSystem->GetIConsole()->GetCVar("r_NoPS20"))
 		pVar->Set(0);
-	if (ICVar* pVar = m_pSystem->GetIConsole()->GetCVar("GL_NV30_PS20"))
+	if (ICVar* pVar = m_pSystem->GetIConsole()->GetCVar("r_GL_NV30_PS20"))
 		pVar->Set(1);
 	if (ICVar* pVar = m_pSystem->GetIConsole()->GetCVar("r_Fullscreen"))
 		pVar->Set(1);
+	if (ICVar* pVar = m_pSystem->GetIConsole()->GetCVar("r_Driver"))
+		pVar->Set("OpenGL");
 #endif
 
   if(m_pSystem->GetISoundSystem())
@@ -994,12 +1015,14 @@ bool CXGame::LoadFromStream(CStream &stm, bool isdemo)
 
 	// loading reserver IDs for dynacally created saved entities
 	int dynReservedIDsNumber=0;
-	stm.Read(dynReservedIDsNumber);
-	for( ; dynReservedIDsNumber>0; --dynReservedIDsNumber )
+	if (stm.Read(dynReservedIDsNumber) && dynReservedIDsNumber > 0 && dynReservedIDsNumber <= 100000)
 	{
-	int reservedId;
-		stm.Read((int&)reservedId);
-		pEntitySystem->MarkId( reservedId );
+		for( ; dynReservedIDsNumber>0; --dynReservedIDsNumber )
+		{
+			int reservedId = 0;
+			if (!stm.Read((int&)reservedId)) break;
+			pEntitySystem->MarkId( reservedId );
+		}
 	}
 
   // only load this in case of older save
@@ -1019,10 +1042,11 @@ bool CXGame::LoadFromStream(CStream &stm, bool isdemo)
 
 	VERIFY_COOKIE_NO(stm,61);
 
-	while (!stm.EOS())
+	while (!stm.EOS() && (stm.GetSize() - stm.GetReadPos() >= 8))
 	{
 		BYTE cChunk=0;
-		stm.Read(cChunk);
+		if (!stm.Read(cChunk))
+			break;
 		switch(cChunk)
 		{
 		case CHUNK_ENTITY:
@@ -1365,8 +1389,11 @@ bool CXGame::LoadFromStream(CStream &stm, bool isdemo)
 				if (pMovies)
 				{
 					IAnimSequence *pSeq = pMovies->FindSequence(szName);
-					pMovies->PlaySequence(pSeq,false);
-					pMovies->SetPlayingTime(pSeq,fTime);
+					if (pSeq)
+					{
+						pMovies->PlaySequence(pSeq,false);
+						pMovies->SetPlayingTime(pSeq,fTime);
+					}
 				}
 			}
 			break;
@@ -1393,7 +1420,8 @@ bool CXGame::LoadFromStream(CStream &stm, bool isdemo)
       break;  
 
 		default:
-			ASSERT(0);
+			m_pLog->Log("CXGame::LoadFromStream: unknown chunk 0x%02X at bit %d/%d, breaking chunk loop", (unsigned int)cChunk, (int)stm.GetReadPos(), (int)stm.GetSize());
+			goto end_chunks_load;
 		};
 
 		if (bLoadBar)
@@ -1401,6 +1429,7 @@ bool CXGame::LoadFromStream(CStream &stm, bool isdemo)
 			pConsole->TickProgressBar();	// advance progress
 		}
 	}
+end_chunks_load:
 
 	{	// [Anton] - allow entities to restore pointer links between them during post load step 
 		// [kirill]	restore all the bindings
@@ -1437,6 +1466,10 @@ bool CXGame::LoadFromStream(CStream &stm, bool isdemo)
 
 	GotoGame(1);
 	m_nDEBUG_TIMING = 0;
+	if (m_bMenuOverlay)
+	{
+		MenuOff();
+	}
 
 	return true;
 };
@@ -1918,14 +1951,26 @@ bool CXGame::LoadFromStream_RELEASEVERSION(CStream &stm, bool isdemo, CScriptObj
 
 	// load saved cvars
 	string varname,val;
-	int nCount,i;
-	stm.Read(nCount);
+	int nCount = 0, i;
+	if (!stm.Read(nCount)) nCount = 0;
+	if (nCount < 0 || nCount > 10000) nCount = 0;
 	IConsole *pCon=m_pSystem->GetIConsole();	
 	for (i=0;i<nCount;i++)
 	{
-		if(stm.Read(varname))
-		if(stm.Read(val))
+		if(stm.Read(varname) && stm.Read(val))
 		{
+#ifdef __ANDROID__
+			// Ignore desktop cvars saved into savegames
+			if (strcasecmp(varname.c_str(), "r_Driver") == 0 ||
+			    strcasecmp(varname.c_str(), "r_Width") == 0 ||
+			    strcasecmp(varname.c_str(), "r_Height") == 0 ||
+			    strcasecmp(varname.c_str(), "r_Fullscreen") == 0 ||
+			    strcasecmp(varname.c_str(), "r_GL_NV30_PS20") == 0 ||
+			    strcasecmp(varname.c_str(), "r_NoPS20") == 0)
+			{
+				continue;
+			}
+#endif
 			ICVar *pCVar=m_pSystem->GetIConsole()->GetCVar(varname.c_str());
 			if (!pCVar)
 			{
@@ -1942,6 +1987,19 @@ bool CXGame::LoadFromStream_RELEASEVERSION(CStream &stm, bool isdemo, CScriptObj
 			return false;
 		}
 	} //i
+
+#ifdef __ANDROID__
+	if (ICVar* pVar = m_pSystem->GetIConsole()->GetCVar("r_Quality_BumpMapping"))
+		pVar->Set(3);
+	if (ICVar* pVar = m_pSystem->GetIConsole()->GetCVar("r_NoPS20"))
+		pVar->Set(0);
+	if (ICVar* pVar = m_pSystem->GetIConsole()->GetCVar("r_GL_NV30_PS20"))
+		pVar->Set(1);
+	if (ICVar* pVar = m_pSystem->GetIConsole()->GetCVar("r_Fullscreen"))
+		pVar->Set(1);
+	if (ICVar* pVar = m_pSystem->GetIConsole()->GetCVar("r_Driver"))
+		pVar->Set("OpenGL");
+#endif
 
   if(m_pSystem->GetISoundSystem())
     m_pSystem->GetISoundSystem()->Silence();
@@ -2073,12 +2131,14 @@ bool CXGame::LoadFromStream_RELEASEVERSION(CStream &stm, bool isdemo, CScriptObj
 
 	// loading reserver IDs for dynacally created saved entities
 	int dynReservedIDsNumber=0;
-	stm.Read(dynReservedIDsNumber);
-	for( ; dynReservedIDsNumber>0; --dynReservedIDsNumber )
+	if (stm.Read(dynReservedIDsNumber) && dynReservedIDsNumber > 0 && dynReservedIDsNumber <= 100000)
 	{
-	int reservedId;
-		stm.Read((int&)reservedId);
-		pEntitySystem->MarkId( reservedId );
+		for( ; dynReservedIDsNumber>0; --dynReservedIDsNumber )
+		{
+			int reservedId = 0;
+			if (!stm.Read((int&)reservedId)) break;
+			pEntitySystem->MarkId( reservedId );
+		}
 	}
 	VERIFY_COOKIE_NO(stm,0x73);
 
@@ -2093,10 +2153,11 @@ bool CXGame::LoadFromStream_RELEASEVERSION(CStream &stm, bool isdemo, CScriptObj
 
 	VERIFY_COOKIE_NO(stm,61);
 
-	while (!stm.EOS())
+	while (!stm.EOS() && (stm.GetSize() - stm.GetReadPos() >= 8))
 	{
 		BYTE cChunk=0;
-		stm.Read(cChunk);
+		if (!stm.Read(cChunk))
+			break;
     
 		switch(cChunk)
 		{
@@ -2378,7 +2439,8 @@ bool CXGame::LoadFromStream_RELEASEVERSION(CStream &stm, bool isdemo, CScriptObj
 			}
 			break;
 		default:
-			ASSERT(0);
+			m_pLog->Log("CXGame::LoadFromStream_RELEASEVERSION: unknown chunk 0x%02X at bit %d/%d, breaking chunk loop", (unsigned int)cChunk, (int)stm.GetReadPos(), (int)stm.GetSize());
+			goto end_chunks_release;
 		};
 
 		if (bLoadBar)
@@ -2386,6 +2448,7 @@ bool CXGame::LoadFromStream_RELEASEVERSION(CStream &stm, bool isdemo, CScriptObj
 			pConsole->TickProgressBar();	// advance progress
 		}
 	}
+end_chunks_release:
 
 	{	// [Anton] - allow entities to restore pointer links between them during post load step 
 		// [kirill]	restore all the bindings
@@ -2421,6 +2484,10 @@ bool CXGame::LoadFromStream_RELEASEVERSION(CStream &stm, bool isdemo, CScriptObj
 		m_pSystem->GetISoundSystem()->SetEaxListenerEnvironment(nPreset,&tProps);
 
 	GotoGame(1);
+	if (m_bMenuOverlay)
+	{
+		MenuOff();
+	}
 
 	return true;
 }
@@ -2484,29 +2551,41 @@ bool CXGame::LoadFromStream_PATCH_1(CStream &stm, bool isdemo, CScriptObjectStre
 
 	// load saved cvars
 	string varname,val;
-	int nCount,i;
-	stm.Read(nCount);
+	int nCount = 0, i;
+	if (!stm.Read(nCount)) nCount = 0;
+	if (nCount < 0 || nCount > 10000) nCount = 0;
 	IConsole *pCon=m_pSystem->GetIConsole();	
 	for (i=0;i<nCount;i++)
 	{
-		if(stm.Read(varname))
-			if(stm.Read(val))
+		if(stm.Read(varname) && stm.Read(val))
+		{
+#ifdef __ANDROID__
+			// Ignore desktop cvars saved into savegames
+			if (strcasecmp(varname.c_str(), "r_Driver") == 0 ||
+			    strcasecmp(varname.c_str(), "r_Width") == 0 ||
+			    strcasecmp(varname.c_str(), "r_Height") == 0 ||
+			    strcasecmp(varname.c_str(), "r_Fullscreen") == 0 ||
+			    strcasecmp(varname.c_str(), "r_GL_NV30_PS20") == 0 ||
+			    strcasecmp(varname.c_str(), "r_NoPS20") == 0)
 			{
-				ICVar *pCVar=m_pSystem->GetIConsole()->GetCVar(varname.c_str());
-				if (!pCVar)
-				{
-					m_pSystem->GetILog()->Log("\001 WARNING, CVar %s(%s) was saved but is not present",varname.c_str(),val.c_str());
-				}
-				else
-					pCVar->Set(val.c_str());
+				continue;
+			}
+#endif
+			ICVar *pCVar=m_pSystem->GetIConsole()->GetCVar(varname.c_str());
+			if (!pCVar)
+			{
+				m_pSystem->GetILog()->Log("\001 WARNING, CVar %s(%s) was saved but is not present",varname.c_str(),val.c_str());
 			}
 			else
-			{
-				m_pSystem->GetILog()->LogError("CXGame::LoadFromStream %d/%d critical error",i,nCount);
-				stm.Debug();
-				m_bIsLoadingLevelFromFile = false;
-				return false;
-			}
+				pCVar->Set(val.c_str());
+		}
+		else
+		{
+			m_pSystem->GetILog()->LogError("CXGame::LoadFromStream %d/%d critical error",i,nCount);
+			stm.Debug();
+			m_bIsLoadingLevelFromFile = false;
+			return false;
+		}
 	} //i
 
 #ifdef __ANDROID__
@@ -2514,10 +2593,12 @@ bool CXGame::LoadFromStream_PATCH_1(CStream &stm, bool isdemo, CScriptObjectStre
 		pVar->Set(3);
 	if (ICVar* pVar = m_pSystem->GetIConsole()->GetCVar("r_NoPS20"))
 		pVar->Set(0);
-	if (ICVar* pVar = m_pSystem->GetIConsole()->GetCVar("GL_NV30_PS20"))
+	if (ICVar* pVar = m_pSystem->GetIConsole()->GetCVar("r_GL_NV30_PS20"))
 		pVar->Set(1);
 	if (ICVar* pVar = m_pSystem->GetIConsole()->GetCVar("r_Fullscreen"))
 		pVar->Set(1);
+	if (ICVar* pVar = m_pSystem->GetIConsole()->GetCVar("r_Driver"))
+		pVar->Set("OpenGL");
 #endif
 
 	if(m_pSystem->GetISoundSystem())
@@ -2650,12 +2731,14 @@ bool CXGame::LoadFromStream_PATCH_1(CStream &stm, bool isdemo, CScriptObjectStre
 
 	// loading reserver IDs for dynacally created saved entities
 	int dynReservedIDsNumber=0;
-	stm.Read(dynReservedIDsNumber);
-	for( ; dynReservedIDsNumber>0; --dynReservedIDsNumber )
+	if (stm.Read(dynReservedIDsNumber) && dynReservedIDsNumber > 0 && dynReservedIDsNumber <= 100000)
 	{
-		int reservedId;
-		stm.Read((int&)reservedId);
-		pEntitySystem->MarkId( reservedId );
+		for( ; dynReservedIDsNumber>0; --dynReservedIDsNumber )
+		{
+			int reservedId = 0;
+			if (!stm.Read((int&)reservedId)) break;
+			pEntitySystem->MarkId( reservedId );
+		}
 	}
 
 	// only load this in case of older save
@@ -2671,10 +2754,11 @@ bool CXGame::LoadFromStream_PATCH_1(CStream &stm, bool isdemo, CScriptObjectStre
 
 	VERIFY_COOKIE_NO(stm,61);
 
-	while (!stm.EOS())
+	while (!stm.EOS() && (stm.GetSize() - stm.GetReadPos() >= 8))
 	{
 		BYTE cChunk=0;
-		stm.Read(cChunk);
+		if (!stm.Read(cChunk))
+			break;
 		switch(cChunk)
 		{
 		case CHUNK_ENTITY:
@@ -3014,9 +3098,15 @@ bool CXGame::LoadFromStream_PATCH_1(CStream &stm, bool isdemo, CScriptObjectStre
 				stm.Read(szName,1024);
 				float fTime;
 				stm.Read(fTime);
-				IAnimSequence *pSeq = pMovies->FindSequence(szName);
-				pMovies->PlaySequence(pSeq,false);
-				pMovies->SetPlayingTime(pSeq,fTime);
+				if (pMovies)
+				{
+					IAnimSequence *pSeq = pMovies->FindSequence(szName);
+					if (pSeq)
+					{
+						pMovies->PlaySequence(pSeq,false);
+						pMovies->SetPlayingTime(pSeq,fTime);
+					}
+				}
 			}
 			break;
 		case CHUNK_HUD:
@@ -3042,7 +3132,8 @@ bool CXGame::LoadFromStream_PATCH_1(CStream &stm, bool isdemo, CScriptObjectStre
 			break;  
 
 		default:
-			ASSERT(0);
+			m_pLog->Log("CXGame::LoadFromStream_PATCH_1: unknown chunk 0x%02X at bit %d/%d, breaking chunk loop", (unsigned int)cChunk, (int)stm.GetReadPos(), (int)stm.GetSize());
+			goto end_chunks_patch1;
 		};
 
 		if (bLoadBar)
@@ -3050,6 +3141,7 @@ bool CXGame::LoadFromStream_PATCH_1(CStream &stm, bool isdemo, CScriptObjectStre
 			pConsole->TickProgressBar();	// advance progress
 		}
 	}
+end_chunks_patch1:
 
 	{	// [Anton] - allow entities to restore pointer links between them during post load step 
 		// [kirill]	restore all the bindings
@@ -3086,6 +3178,10 @@ bool CXGame::LoadFromStream_PATCH_1(CStream &stm, bool isdemo, CScriptObjectStre
 
 	GotoGame(1);
 	m_nDEBUG_TIMING = 0;
+	if (m_bMenuOverlay)
+	{
+		MenuOff();
+	}
 
 	return true;
 };
