@@ -484,6 +484,7 @@ public:
 	IRConSystem *GetIRConSystem() { return m_pRConSystem; };
 
 	void SendMessage(const char *str){
+		CryLogAlways("CXGame::SendMessage: '%s'", str ? str : "NULL");
 		m_qMessages.push(str);
 	}
 	bool ExecuteScript(const char *sPath,bool bForceReload=false);

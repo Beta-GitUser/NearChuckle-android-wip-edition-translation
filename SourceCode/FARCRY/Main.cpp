@@ -951,7 +951,9 @@ bool RunGame(int argc, char** argv)
 #endif
 //////////////////////////////////////////////////////////////////////////
 
+		CryLogAlways("Main: Invoking pGame->Run()");
 		pGame->Run(bRelaunch);
+		CryLogAlways("Main: pGame->Run() completed (bRelaunch=%d)", (int)bRelaunch);
 
 		// remove the previous cmdline in case we relaunch
 		memset(szLocalCmdLine,0,MAX_CMDLINE_LEN);

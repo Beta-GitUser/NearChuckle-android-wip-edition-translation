@@ -382,7 +382,7 @@ void CSystem::SetDevMode( bool bEnable )
 ///////////////////////////////////////////////////
 void CSystem::ShutDown(bool bRelaunch)
 {		
-	CryLogAlways("System Shutdown");
+	CryLogAlways("System Shutdown (bRelaunch=%d, m_bQuit=%d)", (int)bRelaunch, (int)m_bQuit);
 	
 	if (m_pISound)
 	{

@@ -740,7 +740,8 @@ bool CXGame::Init(struct ISystem *pSystem,bool bDedicatedSrv,bool bInEditor,cons
 bool CXGame::Run(bool &bRelaunch)
 {
     //_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_CHECK_ALWAYS_DF | _CRTDBG_LEAK_CHECK_DF);
-	
+	CryLogAlways("CXGame::Run: entered main game loop");
+
 	if(m_bDedicatedServer)
 	{
 		return Update();
@@ -751,12 +752,26 @@ bool CXGame::Run(bool &bRelaunch)
 		m_bRelaunch=false;
 		while(1) 
 		{		
-			if (!Update()) 
-				break;
+			bool bUpdate = Update();
+			if (!bUpdate || (m_pSystem && m_pSystem->IsQuitting()) || m_bRelaunch) 
+			{
+				if ((m_pSystem && m_pSystem->IsQuitting()) || m_bRelaunch)
+				{
+					CryLogAlways("CXGame::Run: Exiting loop normally (IsQuitting=%d, bRelaunch=%d)", 
+						m_pSystem ? (int)m_pSystem->IsQuitting() : 0, (int)m_bRelaunch);
+					break;
+				}
+				else
+				{
+					CryLogAlways("CXGame::Run: Update() returned false but engine is NOT quitting (IsQuitting=0, bRelaunch=0)! Recovering and continuing loop.");
+					m_bUpdateRet = true;
+				}
+			}
 		}
 
 		bRelaunch=m_bRelaunch;
 	}
+	CryLogAlways("CXGame::Run: main loop exited, bRelaunch=%d", (int)bRelaunch);
 	return true;
 }
 
@@ -853,7 +868,16 @@ bool CXGame::Update()
 	//bool bPause=false;
 	IProcess *pProcess=m_pSystem->GetIProcess();
 	if (!pProcess)
-		return false;
+	{
+		CryLogAlways("CXGame::Update: pProcess was NULL, restoring m_p3DEngine");
+		m_pSystem->SetIProcess(m_p3DEngine);
+		pProcess = m_pSystem->GetIProcess();
+		if (!pProcess)
+		{
+			CryLogAlways("CXGame::Update: pProcess still NULL, continuing frame");
+			return true;
+		}
+	}
 
 	bool bPause=IsInPause(pProcess);
 	if (m_bIsLoadingLevelFromFile)
@@ -906,7 +930,12 @@ bool CXGame::Update()
 		IsMultiplayer() ? ESYSUPDATE_MULTIPLAYER:0,
 #endif
 		nPauseMode)) //Update returns false when quitting
-		return (false);
+	{
+		CryLogAlways("CXGame::Update: m_pSystem->Update returned false (IsQuitting=%d)", (int)m_pSystem->IsQuitting());
+		if (m_pSystem->IsQuitting())
+			return (false);
+		return true;
+	}
 
 	if (pVarFOV)
 	{
@@ -1090,6 +1119,7 @@ bool CXGame::Update()
 		{
 			string smsg=m_qMessages.front();
 			m_qMessages.pop();
+			CryLogAlways("CXGame: Processing PMessage '%s'", smsg.c_str());
 			ProcessPMessages(smsg.c_str());		
 		}
 
@@ -1116,6 +1146,7 @@ bool CXGame::Update()
 	{
 		if (!DevModeUpdate())
 		{
+			CryLogAlways("CXGame::Update: DevModeUpdate() returned false");
 			return false;
 		}
 	}
@@ -1130,6 +1161,12 @@ bool CXGame::Update()
 	// End Profiling Frame
 	m_pSystem->GetIProfileSystem()->EndFrame();
 	//////////////////////////////////////////////////////////////////////////
+
+	if (!m_bUpdateRet && (m_pSystem && !m_pSystem->IsQuitting()) && !m_bRelaunch)
+	{
+		CryLogAlways("CXGame::Update: m_bUpdateRet was false without quit/relaunch request, recovering to true");
+		m_bUpdateRet = true;
+	}
 
 	return (m_bUpdateRet);
 }
@@ -1195,6 +1232,8 @@ void CXGame::ProcessPMessages(const char *szMsg)
 {
 	if (!szMsg) 
 		return;
+
+	CryLogAlways("CXGame::ProcessPMessages: message='%s'", szMsg);
 
 	if ((stricmp(szMsg,"EndDemo") == 0) || (stricmp(szMsg,"EndDemoQuit") == 0))	// used for demos (e3, magazine demos)
 	{ 

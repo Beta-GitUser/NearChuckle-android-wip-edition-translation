@@ -119,31 +119,31 @@ public class OscManager {
 
         // Flashlight (L)
         elements.add(new OscElement("btn_flashlight", "Фонарик (L)", "L",
-                180, 15, 44, 0.60f, 0, KeyEvent.KEYCODE_L, 0));
+                180, 22, 44, 0.60f, 0, KeyEvent.KEYCODE_L, 0));
 
         // Binoculars (B)
         elements.add(new OscElement("btn_binoculars", "Бинокль (B)", "B",
-                230, 15, 44, 0.60f, 0, KeyEvent.KEYCODE_B, 0));
+                230, 22, 44, 0.60f, 0, KeyEvent.KEYCODE_B, 0));
 
         // Night Vision (T)
         elements.add(new OscElement("btn_nightvision", "ПНВ (T)", "T",
-                285, 15, 44, 0.60f, 0, KeyEvent.KEYCODE_T, 0));
+                285, 22, 44, 0.60f, 0, KeyEvent.KEYCODE_T, 0));
 
         // Pause Menu (ESC)
         elements.add(new OscElement("btn_menu", "Меню (Esc)", "ESC",
-                20, 15, 44, 0.70f, 0, KeyEvent.KEYCODE_ESCAPE, 0));
+                20, 22, 44, 0.70f, 0, KeyEvent.KEYCODE_ESCAPE, 0));
 
         // Quick Save (F5)
         elements.add(new OscElement("btn_quicksave", "Сохранить (F5)", "F5",
-                75, 15, 42, 0.60f, 0, 135, 0)); // Key 135 = F5
+                75, 22, 42, 0.60f, 0, 135, 0)); // Key 135 = F5
 
         // Quick Load (F9)
         elements.add(new OscElement("btn_quickload", "Загрузить (F9)", "F9",
-                125, 15, 42, 0.60f, 0, 139, 0)); // Key 139 = F9
+                125, 22, 42, 0.60f, 0, 139, 0)); // Key 139 = F9
 
         // Console (Tilde ~)
         elements.add(new OscElement("btn_console", "Консоль (~)", "~",
-                400, 15, 42, 0.50f, 0, KeyEvent.KEYCODE_GRAVE, 0));
+                400, 22, 42, 0.50f, 0, KeyEvent.KEYCODE_GRAVE, 0));
     }
 
     public void init(RelativeLayout container, Context context, boolean isStandaloneEditor) {
