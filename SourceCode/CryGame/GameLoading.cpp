@@ -1710,6 +1710,7 @@ void CXGame::SaveConfiguration( const char *pszSystemCfg,const char *pszGameCfg,
 		sGameCfg=path+sProfileName+"_"+sGameCfg;
 	}
 
+	FILE *pFile = NULL;
 #ifdef __ANDROID__
 	// Never write system.cfg on Android, delete it if present
 	if (!sSystemCfg.empty())
@@ -1722,7 +1723,7 @@ void CXGame::SaveConfiguration( const char *pszSystemCfg,const char *pszGameCfg,
 	remove("SystemCfgOverride.Cfg");
 	remove("systemcfgoverride.cfg");
 #else
-	FILE *pFile=fxopen(sSystemCfg.c_str(), "wb");
+	pFile=fxopen(sSystemCfg.c_str(), "wb");
 	if (pFile)
 	{
 		fputs("-- [System-Configuration]\r\n", pFile);
