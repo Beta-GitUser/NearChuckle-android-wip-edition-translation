@@ -28,7 +28,11 @@ typedef struct
 	ALuint buf;
 	int flags;
 	char filename[MAX_SOUND_FILENAME];
+	float min_dist;
+	float max_dist;
 } ALSample_t;
+
+static int audio_ogg_from_data(unsigned char* p, int bufsize, ALuint* buf);
 
 typedef struct
 {
@@ -69,7 +73,6 @@ ALuint GetSourceOfChannel(int channel)
 	size_t i;
 	if (channel < 0)
 	{
-		__builtin_trap();
 		return SOURCE_OUT_OF_BOUNDS;
 	}
 
@@ -82,7 +85,6 @@ ALuint GetSourceOfChannel(int channel)
 				return streams[i]->source;
 			}
 		}
-		__builtin_trap();
 		return SOURCE_OUT_OF_BOUNDS;
 	}
 	else
@@ -104,6 +106,8 @@ ALSample_t* GetSampleFromName(const char* filename)
 	return NULL;
 }
 
+static unsigned int s_nNextSourceIndex = 0;
+
 int audio_next_available_source(void)
 {
 	int status;
@@ -111,15 +115,14 @@ int audio_next_available_source(void)
 
 	for (i = 0; i < MAX_SOURCES; i++)
 	{
-		if (sources[i] == 0)
+		unsigned int idx = (s_nNextSourceIndex + i) % MAX_SOURCES;
+		if (sources[idx] == 0)
+			continue;
+		alGetSourcei(sources[idx], AL_SOURCE_STATE, &status);
+		if (status != AL_PLAYING && status != AL_PAUSED)
 		{
-			__builtin_trap();
-			return -1;
-		}
-		alGetSourcei(sources[i], AL_SOURCE_STATE, &status);
-		if (status != AL_PLAYING)
-		{
-			return (ALint)i;
+			s_nNextSourceIndex = (idx + 1) % MAX_SOURCES;
+			return (int)idx;
 		}
 	}
 
@@ -358,17 +361,26 @@ DLL_API CS_SAMPLE* F_API CS_Sample_Load(int index, const char* name_or_data, uns
 DLL_API CS_SAMPLE * F_API CS_Sample_Load(int index, const char *name_or_data, unsigned int mode, int offset, int length)
 #endif
 {
-	ALuint thebuf;
-	int ret;
+#ifndef LINUX64
+	int length = memlength;
+#endif
+	ALuint thebuf = 0;
+	int ret = -1;
 	ALSample_t* samp = nullptr;
 	if (mode & CS_LOADMEMORY)
 	{
 		ret = audio_wav_from_data_MEM((void*)name_or_data, length, &thebuf);
+		if (ret != 0)
+		{
+			ret = audio_ogg_from_data((unsigned char*)name_or_data, length, &thebuf);
+		}
 		if (ret == 0)
 		{
 			samp = new ALSample_t;
 			samp->buf = thebuf;
 			samp->flags = mode;
+			samp->min_dist = 1.0f;
+			samp->max_dist = 1000.0f;
 			strcpy(samp->filename, "<MEMORY>");
 
 			buffers.push_back(samp);
@@ -376,12 +388,8 @@ DLL_API CS_SAMPLE * F_API CS_Sample_Load(int index, const char *name_or_data, un
 		}
 		else
 		{
-			AL_LOG("OpenAL: Failed to load wav\n");
+			AL_LOG("OpenAL: Failed to load sound from memory\n");
 		}
-	}
-	else
-	{
-		__builtin_trap();
 	}
 	return (CS_SAMPLE*)samp;
 }
@@ -581,6 +589,9 @@ signed char StreamOGGCallback(CS_STREAM* pStream, void* pBuffer, int nLength, in
 
 DLL_API CS_STREAM*    F_API CS_Stream_Open(const char *name_or_data, unsigned int mode, int offset, int length)
 {
+	if (!name_or_data)
+		return NULL;
+
 #ifndef LINUX64
 	unsigned int file = my_fopen(name_or_data);
 #else
@@ -596,9 +607,10 @@ DLL_API CS_STREAM*    F_API CS_Stream_Open(const char *name_or_data, unsigned in
 	AL_OGG_Userdata_t* userdata = nullptr;
 	const char* ext = strrchr(name_or_data, '.');
 
-	if (strlen(name_or_data) >= MAX_SOUND_FILENAME)
+	if (!ext)
 	{
-		__builtin_trap();
+		if (file) my_fclose(file);
+		return NULL;
 	}
 
 	if (!strcmp(ext, ".ogg"))
@@ -617,7 +629,7 @@ DLL_API CS_STREAM*    F_API CS_Stream_Open(const char *name_or_data, unsigned in
 
 			if (!ogg)
 			{
-				__builtin_trap();
+				delete [] buf;
 				return NULL;
 			}
 
@@ -644,51 +656,20 @@ DLL_API CS_STREAM*    F_API CS_Stream_Open(const char *name_or_data, unsigned in
 		}
 		else
 		{
-			__builtin_trap();
+			return NULL;
 		}
 
 	}
 	else if (!strcmp(ext, ".wav"))
 	{
+		if (file) my_fclose(file);
 		AL_LOG("Error, WAV stream not handled\n");
 		return NULL;
-		//__builtin_trap();
-#if 0
-		if (file)
-		{
-			my_fseek(file, 0, SEEK_END);
-			len = my_ftell(file);
-			
-			buf = new unsigned char[len];
-			my_fseek(file, 0, SEEK_SET);
-			my_fread(buf, len, file);
-			my_fclose(file);
-			
-			ret = audio_wav_from_data_MEM(buf, len, &thebuf);
-			if (ret == 0)
-			{
-				samp = new ALSample_t;
-				samp->buf = thebuf;
-				samp->flags = mode;
-				strcpy(samp->filename, name_or_data);
-				
-				buffers.push_back(samp);
-				AL_LOG("OpenAL: There are now %lu buffers.\n", buffers.size());
-			}
-			else
-			{
-				AL_LOG("OpenAL: %s has a bad format!\n", name_or_data);
-			}
-		}
-		else
-		{
-			__builtin_trap();
-		}
-#endif
 	}
 	else
 	{
-		__builtin_trap();
+		if (file) my_fclose(file);
+		return NULL;
 	}
 
 	return (CS_STREAM*)stream;
@@ -755,18 +736,15 @@ DLL_API int             F_API CS_Stream_Play(int channel, CS_STREAM* stream)
 {
 	ALStream_t* strm = (ALStream_t*)stream;
 	int i;
-	if (channel != CS_FREE)
-	{
-		__builtin_trap();
+	if (!strm)
 		return -1;
-	}
 
 	alSourcei(strm->source, AL_SOURCE_RELATIVE, AL_TRUE);
 	alSource3f(strm->source, AL_POSITION, 0.0f, 0.0f, 0.0f);
 	alSource3f(strm->source, AL_VELOCITY, 0.0f, 0.0f, 0.0f);
 	alSourcePlay(strm->source);
 
-	for (i = 0; i < streams.size(); i++)
+	for (i = 0; i < (int)streams.size(); i++)
 	{
 		if (strm == streams[i])
 		{
@@ -783,23 +761,23 @@ DLL_API int             F_API CS_Stream_PlayEx(int channel, CS_STREAM* stream, C
 	ALStream_t* strm = (ALStream_t*)stream;
 	int i;
 	ALuint stream_buf;
-	if (channel != CS_FREE)
-	{
-		__builtin_trap();
+	if (!strm)
 		return -1;
-	}
 
 	alSourcei(strm->source, AL_SOURCE_RELATIVE, AL_TRUE);
 	alSource3f(strm->source, AL_POSITION, 0.0f, 0.0f, 0.0f);
 	alSource3f(strm->source, AL_VELOCITY, 0.0f, 0.0f, 0.0f);
 
-	strm->callback((CS_STREAM*)stream, strm->buffer,
-				strm->len, strm->userdata);
+	if (strm->callback)
+	{
+		strm->callback((CS_STREAM*)stream, strm->buffer,
+					strm->len, strm->userdata);
 
-	alGenBuffers(1, &stream_buf);
-	alBufferData(stream_buf, AL_FORMAT_STEREO16,
-		(ALvoid *)strm->buffer, strm->len, 44100);
-	alSourceQueueBuffers(strm->source, 1, &stream_buf);
+		alGenBuffers(1, &stream_buf);
+		alBufferData(stream_buf, AL_FORMAT_STEREO16,
+			(ALvoid *)strm->buffer, strm->len, 44100);
+		alSourceQueueBuffers(strm->source, 1, &stream_buf);
+	}
 
 	alSourcePlay(strm->source);
 	if (startpaused)
@@ -807,7 +785,7 @@ DLL_API int             F_API CS_Stream_PlayEx(int channel, CS_STREAM* stream, C
 		alSourcePause(strm->source);
 	}
 
-	for (i = 0; i < streams.size(); i++)
+	for (i = 0; i < (int)streams.size(); i++)
 	{
 		if (strm == streams[i])
 		{
@@ -1000,7 +978,7 @@ static void UpdateStream(ALStream_t* stream)
 				alGetSourcei(stream->source, AL_BUFFERS_QUEUED, &num_queued_buffers);
 			}
 
-			if (state != AL_PLAYING && stream->callback != &StreamOGGCallback)
+			if (state != AL_PLAYING && state != AL_PAUSED)
 			{
 				alSourcePlay(stream->source);
 			}
@@ -1252,7 +1230,7 @@ DLL_API signed char     F_API CS_Sample_GetDefaultsEx(CS_SAMPLE *sptr, int *deff
 
 DLL_API int             F_API CS_PlaySound(int channel, CS_SAMPLE *sptr)
 {
-	return 0;
+	return CS_PlaySoundEx(channel, sptr, NULL, 0);
 }
 
 DLL_API int             F_API CS_PlaySoundEx(int channel, CS_SAMPLE *sptr, CS_DSPUNIT *dsp, signed char startpaused)
@@ -1261,52 +1239,69 @@ DLL_API int             F_API CS_PlaySoundEx(int channel, CS_SAMPLE *sptr, CS_DS
 	int i;
 	ALuint src;
 
+	if (!samp || !samp->buf)
+	{
+		return -1;
+	}
+
 	if (channel == CS_FREE)
 	{
 		i = audio_next_available_source();
 	}
-	else
+	else if (channel >= 0 && channel < MAX_SOURCES)
 	{
-		__builtin_trap();
-		return -1;
-	}
-
-	if (i >= 0)
-	{
-		src = sources[i];
+		i = channel;
 	}
 	else
 	{
 		return -1;
 	}
 
-	if (i >= MAX_SOURCES)
+	if (i < 0 || i >= MAX_SOURCES)
 	{
-		__builtin_trap();
+		return -1;
 	}
 
+	src = sources[i];
+	if (!src)
+	{
+		return -1;
+	}
+
+	alSourceStop(src);
 	alSourcei(src, AL_BUFFER, samp->buf);
-	alSourcei(src, AL_SOURCE_RELATIVE, AL_TRUE);
+	alSourcei(src, AL_SOURCE_RELATIVE, (samp->flags & CS_HW3D) ? AL_FALSE : AL_TRUE);
 	alSource3f(src, AL_POSITION, 0.0f, 0.0f, 0.0f);
 	alSource3f(src, AL_VELOCITY, 0.0f, 0.0f, 0.0f);
-	alSourcei(src, AL_LOOPING, samp->flags & CS_LOOP_NORMAL ? AL_TRUE : AL_FALSE);
-	alSourcePlay(src);
+	alSourcei(src, AL_LOOPING, (samp->flags & CS_LOOP_NORMAL) ? AL_TRUE : AL_FALSE);
+
+	if (samp->min_dist > 0.0f)
+		alSourcef(src, AL_REFERENCE_DISTANCE, samp->min_dist);
+	else
+		alSourcef(src, AL_REFERENCE_DISTANCE, 1.0f);
+
+	if (samp->max_dist > 0.0f)
+		alSourcef(src, AL_MAX_DISTANCE, samp->max_dist);
+	else
+		alSourcef(src, AL_MAX_DISTANCE, 1000.0f);
+
 	if (startpaused)
 	{
 		alSourcePause(src);
 	}
-	
+	else
+	{
+		alSourcePlay(src);
+	}
+
 	return i;
 }
 
 DLL_API signed char     F_API CS_StopSound(int channel)
 {
 	size_t i;
-	if (channel >= MAX_SOURCES)
-	{
-		__builtin_trap();
-		return SOURCE_OUT_OF_BOUNDS;
-	}
+	if (channel < 0)
+		return 0;
 
 	if (channel == CS_FREE)
 	{
@@ -1318,6 +1313,11 @@ DLL_API signed char     F_API CS_StopSound(int channel)
 		return 1;
 	}
 
+	if (channel >= MAX_SOURCES)
+	{
+		return SOURCE_OUT_OF_BOUNDS;
+	}
+
 	alSourceStop(sources[channel]);
 	alSourcei(sources[channel], AL_BUFFER, 0);
 	return 1;
@@ -1326,7 +1326,8 @@ DLL_API signed char     F_API CS_StopSound(int channel)
 DLL_API signed char     F_API CS_Sample_SetMode(CS_SAMPLE *sptr, unsigned int mode)
 {
 	ALSample_t* samp = (ALSample_t*)sptr;
-	samp->flags = mode;
+	if (samp)
+		samp->flags = mode;
 	return 1;
 }
 
@@ -1342,6 +1343,13 @@ DLL_API signed char     F_API CS_Sample_SetDefaults(CS_SAMPLE *sptr, int deffreq
 
 DLL_API signed char     F_API CS_Sample_SetMinMaxDistance(CS_SAMPLE *sptr, float min, float max)
 {
+	ALSample_t* samp = (ALSample_t*)sptr;
+	if (samp)
+	{
+		samp->min_dist = min;
+		samp->max_dist = max;
+		return 1;
+	}
 	return 0;
 }
 

@@ -1024,7 +1024,7 @@ void CSoundSystem::Update()
 
 	{
 		//FRAME_PROFILER( "CSoundSystem::CS_Update",GetSystem(),PROFILE_SOUND );
-		//CS_Update();
+		CS_Update();
 	}
 }
 

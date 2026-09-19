@@ -4510,7 +4510,14 @@ void CGLRenderer::EF_DrawLightPasses_PS30(SShaderTechnique *hs, SShader *ef, int
       if (slw->mfSetTextures())
       {
         if (curVP)
-          curVP->mfSet(true, slw, VPF_DONTSETMATRICES);
+        {
+          if (!curVP->mfSet(true, slw, VPF_DONTSETMATRICES))
+          {
+            curVP = NULL;
+            m_RP.m_FlagsPerFlush &= ~RBSI_USEVP;
+            m_RP.m_PersFlags &= ~RBPF_VSNEEDSET;
+          }
+        }
 
         EF_ApplyMatrixOps(slw->m_MatrixOps, true);
 
@@ -4529,7 +4536,13 @@ void CGLRenderer::EF_DrawLightPasses_PS30(SShaderTechnique *hs, SShader *ef, int
 
         // Set Pixel shaders and Register combiners for the current pass
         if (slw->m_FShader)
-          slw->m_FShader->mfSet(true, slw);
+        {
+          if (!slw->m_FShader->mfSet(true, slw))
+          {
+            slw->m_FShader = NULL;
+            m_RP.m_PersFlags &= ~RBPF_PS1NEEDSET;
+          }
+        }
         else
           m_RP.m_PersFlags &= ~RBPF_PS1NEEDSET;
 
@@ -4815,7 +4828,12 @@ void CGLRenderer::EF_DrawLightPasses(SShaderTechnique *hs, SShader *ef, int nSta
           if (newVP)
           {
             curVP = newVP;
-            curVP->mfSet(true, slw, VPF_SETPOINTERSFORPASS | VPF_DONTSETMATRICES);
+            if (!curVP->mfSet(true, slw, VPF_SETPOINTERSFORPASS | VPF_DONTSETMATRICES))
+            {
+              curVP = NULL;
+              m_RP.m_FlagsPerFlush &= ~RBSI_USEVP;
+              m_RP.m_PersFlags &= ~RBPF_VSNEEDSET;
+            }
           }
           else
             curVP = NULL;
@@ -4834,7 +4852,13 @@ void CGLRenderer::EF_DrawLightPasses(SShaderTechnique *hs, SShader *ef, int nSta
           m_RP.m_PersFlags &= ~RBPF_VSNEEDSET;
 
         if (slw->m_FShader)
-          slw->m_FShader->mfSet(true, slw);
+        {
+          if (!slw->m_FShader->mfSet(true, slw))
+          {
+            slw->m_FShader = NULL;
+            m_RP.m_PersFlags &= ~(RBPF_PS1NEEDSET | RBPF_PS2NEEDSET | RBPF_TSNEEDSET);
+          }
+        }
         else
           m_RP.m_PersFlags &= ~(RBPF_PS1NEEDSET | RBPF_PS2NEEDSET | RBPF_TSNEEDSET);
 
@@ -5463,7 +5487,12 @@ void CGLRenderer::EF_DrawShadowPasses(SShaderTechnique *hs, SShader *ef, int nSt
           if (newVP)
           {
             curVP = newVP;
-            curVP->mfSet(true, slw, VPF_SETPOINTERSFORPASS | VPF_DONTSETMATRICES);
+            if (!curVP->mfSet(true, slw, VPF_SETPOINTERSFORPASS | VPF_DONTSETMATRICES))
+            {
+              curVP = NULL;
+              m_RP.m_FlagsPerFlush &= ~RBSI_USEVP;
+              m_RP.m_PersFlags &= ~RBPF_VSNEEDSET;
+            }
           }
           else
             curVP = NULL;
@@ -5481,7 +5510,13 @@ void CGLRenderer::EF_DrawShadowPasses(SShaderTechnique *hs, SShader *ef, int nSt
 
         // Set Pixel shaders and Register combiners for the current pass
         if (slw->m_FShader)
-          slw->m_FShader->mfSet(true, slw);
+        {
+          if (!slw->m_FShader->mfSet(true, slw))
+          {
+            slw->m_FShader = NULL;
+            m_RP.m_PersFlags &= ~(RBPF_PS1NEEDSET | RBPF_PS2NEEDSET | RBPF_TSNEEDSET);
+          }
+        }
         else
           m_RP.m_PersFlags &= ~(RBPF_PS1NEEDSET | RBPF_PS2NEEDSET | RBPF_TSNEEDSET);
 
@@ -5685,7 +5720,12 @@ void CGLRenderer::EF_DrawGeneralPasses(SShaderTechnique *hs, SShader *ef, bool b
         if (newVP)
         {
           curVP = newVP;
-          curVP->mfSet(true, slw, VPF_SETPOINTERSFORPASS | VPF_DONTSETMATRICES);
+          if (!curVP->mfSet(true, slw, VPF_SETPOINTERSFORPASS | VPF_DONTSETMATRICES))
+          {
+            curVP = NULL;
+            m_RP.m_FlagsPerFlush &= ~RBSI_USEVP;
+            m_RP.m_PersFlags &= ~RBPF_VSNEEDSET;
+          }
         }
         else
           curVP = NULL;
@@ -5703,7 +5743,13 @@ void CGLRenderer::EF_DrawGeneralPasses(SShaderTechnique *hs, SShader *ef, bool b
 
       // Set Pixel shaders and Register combiners for the current pass
       if (slw->m_FShader)
-        slw->m_FShader->mfSet(true, slw);
+      {
+        if (!slw->m_FShader->mfSet(true, slw))
+        {
+          slw->m_FShader = NULL;
+          m_RP.m_PersFlags &= ~(RBPF_PS1NEEDSET | RBPF_PS2NEEDSET | RBPF_TSNEEDSET);
+        }
+      }
       else
         m_RP.m_PersFlags &= ~(RBPF_PS1NEEDSET | RBPF_PS2NEEDSET | RBPF_TSNEEDSET);
 

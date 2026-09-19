@@ -1085,7 +1085,7 @@ bool CSystem::Update( int updateFlags, int nPauseMode )
 
 	//////////////////////////////////////////////////////////////////////
 	//update sound system
-  if ((nPauseMode!=1) && m_pISound && !bNoUpdate)
+  if (m_pISound && !bNoUpdate)
 	{
 		FRAME_PROFILER( "SysUpdate:Sound",this,PROFILE_SYSTEM );
 
