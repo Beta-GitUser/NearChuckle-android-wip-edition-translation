@@ -27,12 +27,13 @@ public class OscElement implements Serializable {
     public int yPercent;
     public int sizeDp;
     public float opacity;
-    public boolean visible = true;
+    public final boolean defaultVisible;
+    public boolean visible;
 
     public View view;
 
     public OscElement(String id, String label, String buttonText, int defaultX, int defaultY, int defaultSizeDp,
-                      float defaultOpacity, int iconRes, int sdlKeyCode, int mouseButton) {
+                      float defaultOpacity, int iconRes, int sdlKeyCode, int mouseButton, boolean defaultVisible) {
         this.id = id;
         this.label = label;
         this.buttonText = (buttonText != null) ? buttonText : label;
@@ -43,16 +44,23 @@ public class OscElement implements Serializable {
         this.iconRes = iconRes;
         this.sdlKeyCode = sdlKeyCode;
         this.mouseButton = mouseButton;
+        this.defaultVisible = defaultVisible;
 
         this.xPercent = defaultX;
         this.yPercent = defaultY;
         this.sizeDp = defaultSizeDp;
         this.opacity = defaultOpacity;
+        this.visible = defaultVisible;
+    }
+
+    public OscElement(String id, String label, String buttonText, int defaultX, int defaultY, int defaultSizeDp,
+                      float defaultOpacity, int iconRes, int sdlKeyCode, int mouseButton) {
+        this(id, label, buttonText, defaultX, defaultY, defaultSizeDp, defaultOpacity, iconRes, sdlKeyCode, mouseButton, true);
     }
 
     public OscElement(String id, String label, int defaultX, int defaultY, int defaultSizeDp,
                       float defaultOpacity, int iconRes, int sdlKeyCode, int mouseButton) {
-        this(id, label, label, defaultX, defaultY, defaultSizeDp, defaultOpacity, iconRes, sdlKeyCode, mouseButton);
+        this(id, label, label, defaultX, defaultY, defaultSizeDp, defaultOpacity, iconRes, sdlKeyCode, mouseButton, true);
     }
 
     public void load(SharedPreferences prefs) {
@@ -60,7 +68,7 @@ public class OscElement implements Serializable {
         yPercent = prefs.getInt("osc_" + id + "_y", defaultYPercent);
         sizeDp = prefs.getInt("osc_" + id + "_size", defaultSizeDp);
         opacity = prefs.getFloat("osc_" + id + "_opacity", defaultOpacity);
-        visible = prefs.getBoolean("osc_" + id + "_visible", true);
+        visible = prefs.getBoolean("osc_" + id + "_visible", defaultVisible);
     }
 
     public void save(SharedPreferences.Editor editor) {
@@ -76,7 +84,7 @@ public class OscElement implements Serializable {
         yPercent = defaultYPercent;
         sizeDp = defaultSizeDp;
         opacity = defaultOpacity;
-        visible = true;
+        visible = defaultVisible;
     }
 
     public void changeSize(int deltaDp) {

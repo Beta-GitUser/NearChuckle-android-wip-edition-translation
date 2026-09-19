@@ -147,8 +147,7 @@ void CXGame::SetCommonKeyBindings(IActionMap *pMap)
 
 	//crouch
 	pMap->BindAction(ACTION_MOVEMODE,XKEY_LCONTROL);	
-	//pMap->BindAction(ACTION_MOVEMODE,XKEY_RIGHT);
-	//pMap->BindAction(ACTION_MOVEMODE,XKEY_C);	
+	pMap->BindAction(ACTION_MOVEMODE,XKEY_C);	
 	pMap->BindAction(ACTION_MOVEMODE,XKEY_NUMPAD0);
 
 	//prone

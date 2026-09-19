@@ -38,112 +38,130 @@ public class OscManager {
     private void createDefaultElements() {
         // Left Analog Stick for Movement (WASD)
         elements.add(new OscElement("joystick_move", "Движение (WASD)", "WASD",
-                40, 520, 190, 0.65f, 0, 0, 0));
+                40, 520, 190, 0.65f, 0, 0, 0, true));
 
         // Right Look Area (Mouse camera look)
         elements.add(new OscElement("touch_look", "Область камеры", "LOOK",
-                460, 160, 480, 0.40f, 0, 0, 0));
+                460, 160, 480, 0.40f, 0, 0, 0, true));
 
         // In-game EDIT button
         elements.add(new OscElement("btn_edit", "EDIT (Настройка)", "EDIT",
-                480, 15, 48, 0.70f, 0, 0, 0));
+                480, 15, 48, 0.70f, 0, 0, 0, true));
 
         // Primary Action Buttons
         // Fire / Shoot (Mouse Button Left = 1)
         elements.add(new OscElement("btn_fire", "Огонь (ЛКМ)", "FIRE",
-                830, 460, 78, 0.80f, 0, 0, 1));
+                830, 460, 78, 0.80f, 0, 0, 1, true));
 
         // Aim / Zoom (Mouse Button Right = 3)
         elements.add(new OscElement("btn_aim", "Прицел (ПКМ)", "AIM",
-                730, 400, 64, 0.75f, 0, 0, 3));
+                730, 400, 64, 0.75f, 0, 0, 3, true));
 
         // Jump (Space)
         elements.add(new OscElement("btn_jump", "Прыжок (Space)", "SPACE",
-                860, 600, 68, 0.75f, 0, KeyEvent.KEYCODE_SPACE, 0));
+                860, 600, 68, 0.75f, 0, KeyEvent.KEYCODE_SPACE, 0, true));
 
-        // Left Control - Crouch (Ctrl) - Primary Far Cry crouch button
-        elements.add(new OscElement("btn_ctrl", "Присесть (Left Ctrl)", "CTRL",
-                750, 620, 60, 0.75f, 0, KeyEvent.KEYCODE_CTRL_LEFT, 0));
+        // Crouch (C / Left Ctrl) - Far Cry Crouch
+        elements.add(new OscElement("btn_crouch", "Присесть (C)", "C",
+                750, 620, 60, 0.75f, 0, KeyEvent.KEYCODE_C, 0, true));
+
+        // Prone / Crawl (V) - Far Cry Prone (ACTION_MOVEMODE2)
+        elements.add(new OscElement("btn_prone", "Лечь / Ползти (V)", "V",
+                670, 620, 56, 0.75f, 0, KeyEvent.KEYCODE_V, 0, true));
 
         // Left Shift - Run / Sprint / Steady Breath
-        elements.add(new OscElement("btn_sprint", "Спринт (Left Shift)", "SHIFT",
-                40, 410, 56, 0.70f, 0, KeyEvent.KEYCODE_SHIFT_LEFT, 0));
+        elements.add(new OscElement("btn_sprint", "Спринт (Shift)", "SHIFT",
+                40, 410, 56, 0.70f, 0, KeyEvent.KEYCODE_SHIFT_LEFT, 0, true));
 
-        // Crouch Toggle (C)
-        elements.add(new OscElement("btn_crouch", "Присесть (C)", "C",
-                670, 620, 54, 0.70f, 0, KeyEvent.KEYCODE_C, 0));
-
-        // Prone (Z)
-        elements.add(new OscElement("btn_prone", "Лечь (Z)", "Z",
-                670, 700, 52, 0.65f, 0, KeyEvent.KEYCODE_Z, 0));
+        // Walk toggle (Z) - Optional Far Cry Walk
+        elements.add(new OscElement("btn_walk", "Шаг (Z)", "Z",
+                110, 410, 48, 0.60f, 0, KeyEvent.KEYCODE_Z, 0, false));
 
         // Reload (R)
         elements.add(new OscElement("btn_reload", "Перезарядка (R)", "R",
-                850, 320, 56, 0.70f, 0, KeyEvent.KEYCODE_R, 0));
+                850, 320, 56, 0.70f, 0, KeyEvent.KEYCODE_R, 0, true));
 
         // Use / Action (F)
         elements.add(new OscElement("btn_use", "Действие (F)", "F",
-                750, 270, 58, 0.70f, 0, KeyEvent.KEYCODE_F, 0));
+                750, 270, 58, 0.70f, 0, KeyEvent.KEYCODE_F, 0, true));
 
         // Grenade (G)
         elements.add(new OscElement("btn_grenade", "Граната (G)", "G",
-                650, 320, 52, 0.65f, 0, KeyEvent.KEYCODE_G, 0));
+                650, 320, 52, 0.65f, 0, KeyEvent.KEYCODE_G, 0, true));
 
         // Cycle Grenade Type (H)
         elements.add(new OscElement("btn_cycle_grenade", "Тип гранаты (H)", "H",
-                580, 320, 48, 0.60f, 0, KeyEvent.KEYCODE_H, 0));
+                580, 320, 48, 0.60f, 0, KeyEvent.KEYCODE_H, 0, true));
 
         // Change Fire Mode (X)
         elements.add(new OscElement("btn_firemode", "Режим огня (X)", "X",
-                650, 410, 50, 0.65f, 0, KeyEvent.KEYCODE_X, 0));
+                650, 410, 50, 0.65f, 0, KeyEvent.KEYCODE_X, 0, true));
 
         // Lean Left (Q)
         elements.add(new OscElement("btn_lean_l", "Наклон влево (Q)", "Q",
-                200, 440, 48, 0.65f, 0, KeyEvent.KEYCODE_Q, 0));
+                200, 440, 48, 0.65f, 0, KeyEvent.KEYCODE_Q, 0, true));
 
         // Lean Right (E)
         elements.add(new OscElement("btn_lean_r", "Наклон вправо (E)", "E",
-                200, 520, 48, 0.65f, 0, KeyEvent.KEYCODE_E, 0));
+                200, 520, 48, 0.65f, 0, KeyEvent.KEYCODE_E, 0, true));
 
-        // Weapon Next (Wheel down / Next)
+        // Weapon Next (Page Down)
         elements.add(new OscElement("btn_weap_next", "След. оружие (Next)", "NEXT",
-                920, 200, 48, 0.65f, 0, KeyEvent.KEYCODE_2, 0));
+                920, 200, 48, 0.65f, 0, KeyEvent.KEYCODE_PAGE_DOWN, 0, true));
 
-        // Weapon Prev (Wheel up / Prev)
+        // Weapon Prev (Page Up)
         elements.add(new OscElement("btn_weap_prev", "Пред. оружие (Prev)", "PREV",
-                850, 200, 48, 0.65f, 0, KeyEvent.KEYCODE_1, 0));
+                850, 200, 48, 0.65f, 0, KeyEvent.KEYCODE_PAGE_UP, 0, true));
+
+        // Drop Weapon (J)
+        elements.add(new OscElement("btn_drop", "Сброс оружия (J)", "DROP",
+                780, 200, 46, 0.60f, 0, KeyEvent.KEYCODE_J, 0, false));
+
+        // Quick Weapon Slot selection 1-4 (optional)
+        elements.add(new OscElement("btn_slot1", "Слот 1 (1)", "1",
+                640, 140, 42, 0.60f, 0, KeyEvent.KEYCODE_1, 0, false));
+        elements.add(new OscElement("btn_slot2", "Слот 2 (2)", "2",
+                695, 140, 42, 0.60f, 0, KeyEvent.KEYCODE_2, 0, false));
+        elements.add(new OscElement("btn_slot3", "Слот 3 (3)", "3",
+                750, 140, 42, 0.60f, 0, KeyEvent.KEYCODE_3, 0, false));
+        elements.add(new OscElement("btn_slot4", "Слот 4 (4)", "4",
+                805, 140, 42, 0.60f, 0, KeyEvent.KEYCODE_4, 0, false));
 
         // Scoreboard & Objectives (TAB)
-        elements.add(new OscElement("btn_tab", "Задачи (TAB)", "TAB",
-                340, 15, 44, 0.60f, 0, KeyEvent.KEYCODE_TAB, 0));
+        elements.add(new OscElement("btn_tab", "Задачи / КПК (TAB)", "TAB",
+                340, 15, 44, 0.60f, 0, KeyEvent.KEYCODE_TAB, 0, true));
 
         // Flashlight (L)
         elements.add(new OscElement("btn_flashlight", "Фонарик (L)", "L",
-                180, 22, 44, 0.60f, 0, KeyEvent.KEYCODE_L, 0));
+                180, 22, 44, 0.60f, 0, KeyEvent.KEYCODE_L, 0, true));
 
         // Binoculars (B)
         elements.add(new OscElement("btn_binoculars", "Бинокль (B)", "B",
-                230, 22, 44, 0.60f, 0, KeyEvent.KEYCODE_B, 0));
+                230, 22, 44, 0.60f, 0, KeyEvent.KEYCODE_B, 0, true));
 
-        // Night Vision (T)
+        // Night Vision / CryVision (T)
         elements.add(new OscElement("btn_nightvision", "ПНВ (T)", "T",
-                285, 22, 44, 0.60f, 0, KeyEvent.KEYCODE_T, 0));
+                285, 22, 44, 0.60f, 0, KeyEvent.KEYCODE_T, 0, true));
+
+        // 3rd Person View (F1)
+        elements.add(new OscElement("btn_view", "Вид (F1)", "F1",
+                395, 22, 42, 0.55f, 0, 131, 0, false)); // 131 = KEYCODE_F1
 
         // Pause Menu (ESC)
         elements.add(new OscElement("btn_menu", "Меню (Esc)", "ESC",
-                20, 22, 44, 0.70f, 0, KeyEvent.KEYCODE_ESCAPE, 0));
+                20, 22, 44, 0.70f, 0, KeyEvent.KEYCODE_ESCAPE, 0, true));
 
         // Quick Save (F5)
         elements.add(new OscElement("btn_quicksave", "Сохранить (F5)", "F5",
-                75, 22, 42, 0.60f, 0, 135, 0)); // Key 135 = F5
+                75, 22, 42, 0.55f, 0, 135, 0, false)); // Key 135 = F5
 
         // Quick Load (F9)
         elements.add(new OscElement("btn_quickload", "Загрузить (F9)", "F9",
-                125, 22, 42, 0.60f, 0, 139, 0)); // Key 139 = F9
+                125, 22, 42, 0.55f, 0, 139, 0, false)); // Key 139 = F9
 
         // Console (Tilde ~)
         elements.add(new OscElement("btn_console", "Консоль (~)", "~",
-                400, 22, 42, 0.50f, 0, KeyEvent.KEYCODE_GRAVE, 0));
+                445, 22, 42, 0.50f, 0, KeyEvent.KEYCODE_GRAVE, 0, true));
     }
 
     public void init(RelativeLayout container, Context context, boolean isStandaloneEditor) {
