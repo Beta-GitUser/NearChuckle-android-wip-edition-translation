@@ -124,18 +124,21 @@ public class OscButton extends View {
             canvas.drawRoundRect(bounds, radius, radius, borderPaint);
         }
 
-        // Icon or text
-        if (iconDrawable != null) {
-            int iconPadding = (int) (w * 0.22f);
-            iconDrawable.setBounds(iconPadding, iconPadding, w - iconPadding, h - iconPadding);
-            iconDrawable.setTint(isPressed ? Color.BLACK : Color.WHITE);
-            iconDrawable.draw(canvas);
-        } else {
-            // Draw element short name/label
-            textPaint.setTextSize(w * 0.28f);
-            float textY = h / 2f - (textPaint.descent() + textPaint.ascent()) / 2f;
-            canvas.drawText(element.label, w / 2f, textY, textPaint);
+        // Draw button letter / text label in center
+        String text = (element.buttonText != null && !element.buttonText.isEmpty())
+                ? element.buttonText : element.label;
+        float textSize = w * 0.34f;
+        if (text.length() >= 5) {
+            textSize = w * 0.20f;
+        } else if (text.length() >= 4) {
+            textSize = w * 0.24f;
+        } else if (text.length() >= 2) {
+            textSize = w * 0.29f;
         }
+        textPaint.setTextSize(textSize);
+        textPaint.setColor(isPressed ? Color.BLACK : Color.WHITE);
+        float textY = h / 2f - (textPaint.descent() + textPaint.ascent()) / 2f;
+        canvas.drawText(text, w / 2f, textY, textPaint);
     }
 
     @SuppressLint("ClickableViewAccessibility")

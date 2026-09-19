@@ -181,6 +181,7 @@ public class GameActivity extends SDLActivity {
         // Graphics quality settings for full SM2.0 lighting, water, and 3D menu background
         args.add("\"r_Quality_BumpMapping 3\"");
         args.add("\"r_NoPS20 0\"");
+        args.add("\"r_GL_NV30_PS20 1\"");
         args.add("\"GL_NV30_PS20 1\"");
 
         // Custom parameters

@@ -931,6 +931,7 @@ bool CXGame::LoadFromStream(CStream &stm, bool isdemo)
 		pConsole->SetScrollMax(600);
 		pConsole->ShowConsole(1);
 		DeleteMessage("Switch"); // no switching during loading
+		DeleteMessage("EndCutScene");
 
 		// local player has to exit all areas before starting to delete entities
 		IEntity *pIMyPlayer = GetMyPlayer();
@@ -2047,6 +2048,7 @@ bool CXGame::LoadFromStream_RELEASEVERSION(CStream &stm, bool isdemo, CScriptObj
 		pConsole->SetScrollMax(600);
 		pConsole->ShowConsole(1);
 		DeleteMessage("Switch"); // no switching during loading
+		DeleteMessage("EndCutScene");
 
 		// local player has to exit all areas before starting to delete entities
 		IEntity *pIMyPlayer = GetMyPlayer();
@@ -2647,6 +2649,7 @@ bool CXGame::LoadFromStream_PATCH_1(CStream &stm, bool isdemo, CScriptObjectStre
 		pConsole->SetScrollMax(600);
 		pConsole->ShowConsole(1);
 		DeleteMessage("Switch"); // no switching during loading
+		DeleteMessage("EndCutScene");
 
 		// local player has to exit all areas before starting to delete entities
 		IEntity *pIMyPlayer = GetMyPlayer();

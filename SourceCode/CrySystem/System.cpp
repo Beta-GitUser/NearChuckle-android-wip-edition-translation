@@ -558,6 +558,7 @@ void CSystem::ShutDown(bool bRelaunch)
 /////////////////////////////////////////////////////////////////////////////////
 void CSystem::Quit()
 {
+	CryLogAlways("CSystem::Quit() called (current m_bQuit=%d)", (int)m_bQuit);
 	m_bQuit=true;
 #ifdef WIN32
 	if (m_bEditor)
@@ -885,7 +886,10 @@ bool CSystem::Update( int updateFlags, int nPauseMode )
 		{
 			switch (event.type)
 			{
-			case SDL_EVENT_QUIT: Quit(); break;
+			case SDL_EVENT_QUIT:
+				CryLogAlways("SDL_EVENT_QUIT received, calling Quit()");
+				Quit();
+				break;
 			case SDL_EVENT_TEXT_INPUT: break; //ignore
 			case SDL_EVENT_WINDOW_SHOWN:
 			case SDL_EVENT_WINDOW_RESTORED:

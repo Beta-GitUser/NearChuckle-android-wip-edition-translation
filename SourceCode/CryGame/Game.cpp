@@ -1014,8 +1014,8 @@ bool CXGame::Update()
 		FRAME_PROFILER( "GameUpdate:HUD",m_pSystem,PROFILE_GAME );
 
 		// update hud itself
-		if(!m_pCurrentUI->Update())
-			m_bUpdateRet = false;
+		if (m_pCurrentUI)
+			m_pCurrentUI->Update();
 
     // update ingame-dialog-manager
 		if (m_pIngameDialogMgr)
@@ -1297,15 +1297,9 @@ void CXGame::ProcessPMessages(const char *szMsg)
 	{
 		if (m_bMenuOverlay)				// we're in menu-mode; switch to game
 		{
-			if (m_pClient)
+			if (m_pClient && m_pClient->IsConnected())
 			{
 				MenuOff();
-			}
-			else if(!IsMultiplayer())
-			{
-				// there's no game, so lets quit...
-				// exit from game-must be prompted with "Are you Sure?"
-				m_pSystem->Quit();
 			}
 		}	
 	}
@@ -1556,6 +1550,7 @@ void CXGame::LoadLevelCS(bool keepclient, const char *szMapName, const char *szM
 
 	if (m_pSystem->GetIMovieSystem())
 		m_pSystem->GetIMovieSystem()->StopAllCutScenes();
+	DeleteMessage("EndCutScene");
 	//m_lstPlayedCutScenes.clear();
 
 	bool bDedicated=GetSystem()->IsDedicated();

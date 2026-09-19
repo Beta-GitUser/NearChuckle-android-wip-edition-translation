@@ -14,6 +14,7 @@ import java.io.Serializable;
 public class OscElement implements Serializable {
     public final String id;
     public final String label;
+    public final String buttonText;
     public final int defaultXPercent; // 0 - 1000 (per mille)
     public final int defaultYPercent; // 0 - 1000 (per mille)
     public final int defaultSizeDp;
@@ -30,10 +31,11 @@ public class OscElement implements Serializable {
 
     public View view;
 
-    public OscElement(String id, String label, int defaultX, int defaultY, int defaultSizeDp,
+    public OscElement(String id, String label, String buttonText, int defaultX, int defaultY, int defaultSizeDp,
                       float defaultOpacity, int iconRes, int sdlKeyCode, int mouseButton) {
         this.id = id;
         this.label = label;
+        this.buttonText = (buttonText != null) ? buttonText : label;
         this.defaultXPercent = defaultX;
         this.defaultYPercent = defaultY;
         this.defaultSizeDp = defaultSizeDp;
@@ -46,6 +48,11 @@ public class OscElement implements Serializable {
         this.yPercent = defaultY;
         this.sizeDp = defaultSizeDp;
         this.opacity = defaultOpacity;
+    }
+
+    public OscElement(String id, String label, int defaultX, int defaultY, int defaultSizeDp,
+                      float defaultOpacity, int iconRes, int sdlKeyCode, int mouseButton) {
+        this(id, label, label, defaultX, defaultY, defaultSizeDp, defaultOpacity, iconRes, sdlKeyCode, mouseButton);
     }
 
     public void load(SharedPreferences prefs) {
