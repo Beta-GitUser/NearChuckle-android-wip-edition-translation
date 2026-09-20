@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Paths shared with other apps through androidx FileProvider.
+  Only used for the downloaded launcher update APK, which the system
+  package installer needs to read.
+-->
+<paths>
+    <!-- Context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS) -->
+    <external-files-path
+        name="updates"
+        path="Download/" />
+    <!-- Fallback: /data/data/com.nearchuckle.farcry/files/updates -->
+    <files-path
+        name="updates_internal"
+        path="updates/" />
+</paths>

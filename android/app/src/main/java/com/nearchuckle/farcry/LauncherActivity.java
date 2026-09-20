@@ -11,6 +11,8 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
+import android.os.Looper;
 import android.provider.Settings;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -57,6 +59,9 @@ public class LauncherActivity extends Activity {
     public static final String KEY_HIDE_CONTROLS = "hide_controls";
     public static final String KEY_MOUSE_SENSITIVITY = "mouse_sensitivity";
 
+    /** Delay before the automatic update check starts, so the UI is on screen first. */
+    private static final long UPDATE_CHECK_DELAY_MS = 600L;
+
     private static final int REQ_CODE_ZIP = 1001;
     private static final int REQ_CODE_STORAGE_PERMISSION = 1002;
 
@@ -79,6 +84,13 @@ public class LauncherActivity extends Activity {
     private List<DriverInfo> installedDrivers = new ArrayList<>();
     private ArrayAdapter<String> driverAdapter;
 
+    /** Set when an APK was downloaded but the user still has to allow "install unknown apps". */
+    private File pendingInstallApk;
+    /** The automatic check runs once per activity instance (not after every onResume). */
+    private boolean autoUpdateCheckStarted = false;
+    /** Currently visible update dialog, so it is never shown twice at once. */
+    private AlertDialog updateDialog;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         CrashHandler.init(this);
@@ -92,6 +104,9 @@ public class LauncherActivity extends Activity {
         setupGpuDetection();
         setupDriverSpinner();
         setupListeners();
+
+        // Remove APK files left over by previous sessions (the fresh one is downloaded on demand).
+        UpdateManager.clearDownloadedUpdates(this);
     }
 
     @Override
@@ -107,6 +122,19 @@ public class LauncherActivity extends Activity {
                     })
                     .setNegativeButton(R.string.cancel, null)
                     .show();
+        }
+
+        // The user may have just granted "install unknown apps" - finish the pending install.
+        if (pendingInstallApk != null && UpdateManager.canInstallPackages(this)) {
+            File apk = pendingInstallApk;
+            pendingInstallApk = null;
+            installDownloadedApk(apk);
+        }
+
+        if (!autoUpdateCheckStarted) {
+            autoUpdateCheckStarted = true;
+            new Handler(Looper.getMainLooper())
+                    .postDelayed(() -> checkForUpdates(false), UPDATE_CHECK_DELAY_MS);
         }
     }
 
@@ -325,6 +353,12 @@ public class LauncherActivity extends Activity {
             btnDownloadShaders.setOnClickListener(v -> downloadShadersPack());
         }
 
+        // Manual "Check for updates" button
+        Button btnCheckUpdates = findViewById(R.id.btn_check_updates);
+        if (btnCheckUpdates != null) {
+            btnCheckUpdates.setOnClickListener(v -> checkForUpdates(true));
+        }
+
         // Launch Game Button
         findViewById(R.id.btn_launch_game).setOnClickListener(v -> launchGame());
     }
@@ -426,6 +460,159 @@ public class LauncherActivity extends Activity {
                 if (conn != null) conn.disconnect();
             }
         }).start();
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // Launcher self-update (new APK version notification)
+    // ---------------------------------------------------------------------------------------------
+
+    /**
+     * Asks the update server whether a newer APK exists.
+     *
+     * @param manual true when the user pressed "Check for updates" (result is always reported)
+     */
+    private void checkForUpdates(final boolean manual) {
+        if (manual) {
+            Toast.makeText(this, R.string.toast_update_checking, Toast.LENGTH_SHORT).show();
+        }
+
+        UpdateManager.checkAsync(this, manual, (info, error) -> {
+            if (isFinishing() || isDestroyed()) {
+                return;
+            }
+            if (info != null) {
+                showUpdateDialog(info);
+            } else if (manual) {
+                if (error != null) {
+                    Toast.makeText(this, R.string.toast_update_check_failed, Toast.LENGTH_LONG).show();
+                } else {
+                    Toast.makeText(this,
+                            getString(R.string.toast_update_up_to_date,
+                                    UpdateManager.getInstalledVersionName(this)),
+                            Toast.LENGTH_LONG).show();
+                }
+            }
+        });
+    }
+
+    /** "Update available" dialog: [Download] / [Cancel]. */
+    private void showUpdateDialog(final UpdateManager.UpdateInfo info) {
+        if (updateDialog != null && updateDialog.isShowing()) {
+            return;
+        }
+
+        String message = getString(R.string.dialog_update_msg,
+                info.versionName != null ? info.versionName : String.valueOf(info.versionCode),
+                info.versionCode,
+                UpdateManager.getInstalledVersionName(this),
+                UpdateManager.getInstalledVersionCode(this));
+        if (info.notes != null && !info.notes.isEmpty()) {
+            message = message + "\n\n" + info.notes;
+        }
+
+        updateDialog = new AlertDialog.Builder(this)
+                .setTitle(R.string.dialog_update_title)
+                .setMessage(message)
+                .setPositiveButton(R.string.btn_update_download, (dialog, which) -> startUpdateDownload(info))
+                .setNegativeButton(R.string.cancel, null)
+                .setCancelable(!info.mandatory)
+                .show();
+    }
+
+    /** Downloads the new APK with a progress bar, then hands it to the system installer. */
+    private void startUpdateDownload(final UpdateManager.UpdateInfo info) {
+        if (info.apkUrl == null || info.apkUrl.isEmpty()) {
+            new AlertDialog.Builder(this)
+                    .setTitle(R.string.dialog_update_failed_title)
+                    .setMessage(getString(R.string.dialog_update_failed_msg, "no APK URL in update manifest"))
+                    .setPositiveButton(R.string.ok, null)
+                    .show();
+            return;
+        }
+
+        final android.app.ProgressDialog progress = new android.app.ProgressDialog(this);
+        progress.setTitle(R.string.dialog_update_title);
+        progress.setMessage(getString(R.string.dialog_update_downloading));
+        progress.setProgressStyle(android.app.ProgressDialog.STYLE_HORIZONTAL);
+        progress.setMax(100);
+        progress.setCancelable(false);
+        progress.show();
+
+        UpdateManager.downloadApk(this, info, new UpdateManager.DownloadListener() {
+            @Override
+            public void onProgress(final int percent, final long downloadedBytes, final long totalBytes) {
+                runOnUiThread(() -> {
+                    progress.setProgress(percent);
+                    progress.setMessage(getString(R.string.dialog_update_downloading_progress,
+                            percent,
+                            UpdateManager.formatSize(downloadedBytes),
+                            UpdateManager.formatSize(totalBytes)));
+                });
+            }
+
+            @Override
+            public void onSuccess(final File apk) {
+                runOnUiThread(() -> {
+                    progress.dismiss();
+                    if (isFinishing() || isDestroyed()) {
+                        return;
+                    }
+                    if (!UpdateManager.canInstallPackages(LauncherActivity.this)) {
+                        askForUnknownSourcesPermission(apk);
+                    } else {
+                        installDownloadedApk(apk);
+                    }
+                });
+            }
+
+            @Override
+            public void onError(final Exception e) {
+                runOnUiThread(() -> {
+                    progress.dismiss();
+                    if (isFinishing() || isDestroyed()) {
+                        return;
+                    }
+                    new AlertDialog.Builder(LauncherActivity.this)
+                            .setTitle(R.string.dialog_update_failed_title)
+                            .setMessage(getString(R.string.dialog_update_failed_msg,
+                                    UpdateManager.describe(e)))
+                            .setPositiveButton(R.string.ok, null)
+                            .show();
+                });
+            }
+        });
+    }
+
+    /** Android 8+: the user has to allow "install unknown apps" before the installer can run. */
+    private void askForUnknownSourcesPermission(final File apk) {
+        pendingInstallApk = apk;
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.dialog_unknown_sources_title)
+                .setMessage(R.string.dialog_unknown_sources_msg)
+                .setPositiveButton(R.string.btn_permission_allow, (dialog, which) -> {
+                    try {
+                        startActivity(UpdateManager.unknownSourcesSettingsIntent(this));
+                    } catch (Exception e) {
+                        pendingInstallApk = null;
+                        Toast.makeText(this, R.string.toast_update_check_failed, Toast.LENGTH_LONG).show();
+                    }
+                })
+                .setNegativeButton(R.string.cancel, (dialog, which) -> pendingInstallApk = null)
+                .setOnCancelListener(dialog -> pendingInstallApk = null)
+                .show();
+    }
+
+    private void installDownloadedApk(File apk) {
+        try {
+            UpdateManager.installApk(this, apk);
+            Toast.makeText(this, R.string.toast_update_installing, Toast.LENGTH_SHORT).show();
+        } catch (Exception e) {
+            new AlertDialog.Builder(this)
+                    .setTitle(R.string.dialog_update_failed_title)
+                    .setMessage(getString(R.string.dialog_update_failed_msg, UpdateManager.describe(e)))
+                    .setPositiveButton(R.string.ok, null)
+                    .show();
+        }
     }
 
     private void validateGamePath(String path) {

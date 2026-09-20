@@ -95,6 +95,22 @@
     <string name="toast_specify_game_path_first">Сначала выберите папку с игрой Far Cry!</string>
     <string name="error_no_game_folder">Папка игры не найдена</string>
 
+    <!-- App Update (launcher self-update) -->
+    <string name="btn_check_updates">Проверить обновления</string>
+    <string name="toast_update_checking">Проверяем обновления...</string>
+    <string name="toast_update_up_to_date">У вас уже установлена последняя версия (%1$s)</string>
+    <string name="toast_update_check_failed">Не удалось проверить обновления. Проверьте подключение к интернету</string>
+    <string name="dialog_update_title">Доступно обновление</string>
+    <string name="dialog_update_msg">Доступна новая версия NearChuckle: %1$s (сборка %2$d).\n\nУстановленная версия: %3$s (сборка %4$d).\n\nСкачать и установить обновление?</string>
+    <string name="btn_update_download">Скачать</string>
+    <string name="dialog_update_downloading">Загрузка обновления...</string>
+    <string name="dialog_update_downloading_progress">Загрузка обновления: %1$d%% (%2$s из %3$s)</string>
+    <string name="toast_update_installing">Обновление скачано, открываем установщик...</string>
+    <string name="dialog_update_failed_title">Ошибка обновления</string>
+    <string name="dialog_update_failed_msg">Не удалось скачать обновление: %1$s</string>
+    <string name="dialog_unknown_sources_title">Разрешите установку</string>
+    <string name="dialog_unknown_sources_msg">Обновление загружено. Разрешите этому приложению установку неизвестных приложений, после чего установщик откроется автоматически.</string>
+
     <!-- Game Launch Dialogs -->
     <string name="dialog_folder_not_found_title">Папка не найдена</string>
     <string name="dialog_folder_not_found_msg">Папка с файлами Far Cry (%s) не существует. Выберите правильную папку с установленной игрой Far Cry.</string>

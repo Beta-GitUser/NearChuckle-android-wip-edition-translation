@@ -1,0 +1,8 @@
+{
+  "_comment": "Update manifest for the NearChuckle Android launcher. Bump versionCode/versionName here (they must match android/app/build.gradle of the published build) and the launcher will offer the new APK to every user. Hosted copies: https://rohitcodes.fyi/nearchuckle/update.json and https://raw.githubusercontent.com/Player124413/NearChuckle-android-edition/Android/android/update.json",
+  "versionCode": 100,
+  "versionName": "1.0.1",
+  "apkUrl": "https://github.com/Player124413/NearChuckle-android-edition/releases/latest/download/app-release.apk",
+  "notes": "Far Cry 1 Android edition: launcher, Mesa Zink / Turnip driver support and touch controls.",
+  "mandatory": false
+}

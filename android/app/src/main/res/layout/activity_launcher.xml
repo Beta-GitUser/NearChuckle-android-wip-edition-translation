@@ -375,6 +375,17 @@
                 android:textSize="14sp" />
         </LinearLayout>
 
+        <!-- CHECK FOR UPDATES BUTTON -->
+        <Button
+            android:id="@+id/btn_check_updates"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginBottom="8dp"
+            android:background="@drawable/btn_dark"
+            android:text="@string/btn_check_updates"
+            android:textColor="@color/accent"
+            android:textSize="13sp" />
+
         <!-- VIEW LOGS & CRASH REPORTS BUTTON -->
         <Button
             android:id="@+id/btn_view_logs"
