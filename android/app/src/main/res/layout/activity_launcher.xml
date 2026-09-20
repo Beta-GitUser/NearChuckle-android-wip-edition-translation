@@ -328,17 +328,7 @@
                 android:textSize="16sp"
                 android:textStyle="bold" />
 
-            <Button
-                android:id="@+id/btn_configure_controls"
-                android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:layout_marginTop="10dp"
-                android:background="@drawable/btn_dark"
-                android:drawableStart="@drawable/ic_osc_edit"
-                android:drawablePadding="8dp"
-                android:text="@string/btn_configure_controls"
-                android:textColor="@color/primary"
-                android:textSize="14sp" />
+            <!-- Touch controls are configured in-game with the EDIT button (OscManager edit mode) -->
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -374,6 +364,17 @@
                 android:textColor="@color/text_primary"
                 android:textSize="14sp" />
         </LinearLayout>
+
+        <!-- CHECK FOR UPDATES BUTTON -->
+        <Button
+            android:id="@+id/btn_check_updates"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginBottom="8dp"
+            android:background="@drawable/btn_dark"
+            android:text="@string/btn_check_updates"
+            android:textColor="@color/accent"
+            android:textSize="13sp" />
 
         <!-- VIEW LOGS & CRASH REPORTS BUTTON -->
         <Button

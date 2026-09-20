@@ -12,6 +12,8 @@
 
 #define MAX_SOUND_FILENAME 128
 #define MIN_QUEUED_BUFFERS 20
+// Buffers queued before playback starts, so the beginning of streamed music is not starved.
+#define STREAM_PREFILL_BUFFERS 4
 
 #ifndef __linux
 #define __builtin_trap void
@@ -45,6 +47,9 @@ typedef struct
 	CS_STREAMCALLBACK callback;
 	char* buffer;
 	int len;
+	// Real sample rate of the stream. Feeding a wrong rate to alBufferData plays the
+	// music at the wrong speed/pitch, so it is taken from the decoder / caller.
+	int sample_rate;
 #ifdef LINUX64
 	void* userdata;
 #else
@@ -643,6 +648,7 @@ DLL_API CS_STREAM*    F_API CS_Stream_Open(const char *name_or_data, unsigned in
 			alGenSources(1, &stream->source);
 			stream->buffer = new char[4096];
 			stream->len = 4096;
+			stream->sample_rate = (info.sample_rate > 0) ? info.sample_rate : 44100;
 			stream->callback = StreamOGGCallback;
 #ifdef LINUX64
 			stream->userdata = userdata;
@@ -685,6 +691,7 @@ DLL_API CS_STREAM* F_API CS_Stream_Create(CS_STREAMCALLBACK callback, int length
 	alGenSources(1, &stream->source);
 	stream->buffer = new char[length];
 	stream->len = length;
+	stream->sample_rate = (samplerate > 0) ? samplerate : 44100;
 	stream->callback = callback;
 	stream->userdata = userdata;
 	stream->channel = CS_FREE;
@@ -772,13 +779,22 @@ DLL_API int             F_API CS_Stream_PlayEx(int channel, CS_STREAM* stream, C
 
 	if (strm->callback)
 	{
-		strm->callback((CS_STREAM*)stream, strm->buffer,
-					strm->len, strm->userdata);
+		// Queue a few buffers before starting instead of a single one: with only one small
+		// buffer queued the source starves on the first frames and the music crackles.
+		// Bink streams keep the old single-buffer path - their payload length is fixed up
+		// later in UpdateStream().
+		int prefill = (strm->len == 138240) ? 1 : STREAM_PREFILL_BUFFERS;
+		int n;
+		for (n = 0; n < prefill; n++)
+		{
+			strm->callback((CS_STREAM*)stream, strm->buffer,
+						strm->len, strm->userdata);
 
-		alGenBuffers(1, &stream_buf);
-		alBufferData(stream_buf, AL_FORMAT_STEREO16,
-			(ALvoid *)strm->buffer, strm->len, 44100);
-		alSourceQueueBuffers(strm->source, 1, &stream_buf);
+			alGenBuffers(1, &stream_buf);
+			alBufferData(stream_buf, AL_FORMAT_STEREO16,
+				(ALvoid *)strm->buffer, strm->len, strm->sample_rate);
+			alSourceQueueBuffers(strm->source, 1, &stream_buf);
+		}
 	}
 
 	alSourcePlay(strm->source);
@@ -965,9 +981,16 @@ static void UpdateStream(ALStream_t* stream)
 
 	alGetSourcei(stream->source, AL_BUFFERS_QUEUED, &num_queued_buffers);
 
-	if (num_queued_buffers < MIN_QUEUED_BUFFERS)
+	if (num_queued_buffers < MIN_QUEUED_BUFFERS && stream->callback)
 	{
-		if (stream->callback)
+		// Refill everything that is missing in this update instead of a single buffer.
+		// Queueing only one buffer per CS_Update() starves the source whenever a frame
+		// takes longer than one buffer (the main menu renders a 3D background and drops
+		// frames), which is heard as crackling/broken music. The loop is bounded by the
+		// number of missing buffers, so it can never spin.
+		int missing = MIN_QUEUED_BUFFERS - num_queued_buffers;
+
+		for (i = 0; i < missing && num_queued_buffers < MIN_QUEUED_BUFFERS; i++)
 		{
 			stream->callback((CS_STREAM*)stream, stream->buffer,
 				stream->len, stream->userdata);
@@ -981,14 +1004,16 @@ static void UpdateStream(ALStream_t* stream)
 				bytes_processed = stream->len;
 			}
 
-			if (bytes_processed > 0)
+			if (bytes_processed <= 0)
 			{
-				alGenBuffers(1, &stream_buf);
-				alBufferData(stream_buf, AL_FORMAT_STEREO16,
-					(ALvoid *)stream->buffer, bytes_processed, 44100);
-				alSourceQueueBuffers(stream->source, 1, &stream_buf);
-				alGetSourcei(stream->source, AL_BUFFERS_QUEUED, &num_queued_buffers);
+				break;
 			}
+
+			alGenBuffers(1, &stream_buf);
+			alBufferData(stream_buf, AL_FORMAT_STEREO16,
+				(ALvoid *)stream->buffer, bytes_processed, stream->sample_rate);
+			alSourceQueueBuffers(stream->source, 1, &stream_buf);
+			alGetSourcei(stream->source, AL_BUFFERS_QUEUED, &num_queued_buffers);
 
 			if (state != AL_PLAYING && state != AL_PAUSED && stream->channel != CS_FREE)
 			{

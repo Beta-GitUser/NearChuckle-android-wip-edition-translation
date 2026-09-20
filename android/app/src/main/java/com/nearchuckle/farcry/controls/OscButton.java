@@ -35,6 +35,9 @@ public class OscButton extends View {
     private boolean isPressed = false;
     private boolean isSelected = false;
 
+    /** Finger that pressed this button - needed so the key is released on multi-touch pointer up. */
+    private int activePointerId = MotionEvent.INVALID_POINTER_ID;
+
     // Drag tracking in Edit Mode
     private float startRawX, startRawY;
     private int startXPercent, startYPercent;
@@ -155,21 +158,38 @@ public class OscButton extends View {
 
         switch (event.getActionMasked()) {
             case MotionEvent.ACTION_DOWN:
+                activePointerId = event.getPointerId(0);
                 isPressed = true;
                 performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);
                 sendInputDown();
                 invalidate();
                 return true;
 
+            case MotionEvent.ACTION_POINTER_UP:
+                // Another finger went up. Release the button only if it was the finger
+                // that pressed it, otherwise fire/aim/keys stay held down.
+                if (event.getPointerId(event.getActionIndex()) == activePointerId) {
+                    releaseButton();
+                }
+                return true;
+
             case MotionEvent.ACTION_UP:
             case MotionEvent.ACTION_CANCEL:
-                isPressed = false;
-                sendInputUp();
-                invalidate();
+                releaseButton();
                 return true;
         }
 
         return super.onTouchEvent(event);
+    }
+
+    private void releaseButton() {
+        activePointerId = MotionEvent.INVALID_POINTER_ID;
+        if (!isPressed) {
+            return;
+        }
+        isPressed = false;
+        sendInputUp();
+        invalidate();
     }
 
     private void handleEditTouch(MotionEvent event) {
