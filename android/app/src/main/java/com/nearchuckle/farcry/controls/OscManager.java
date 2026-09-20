@@ -54,8 +54,10 @@ public class OscManager {
                 830, 460, 78, 0.80f, 0, 0, 1, true));
 
         // Aim / Zoom (Mouse Button Right = 3)
+        // Sticky (toggle): one tap locks the right mouse button down, a second tap releases it,
+        // so the player does not have to keep a finger on AIM while looking around.
         elements.add(new OscElement("btn_aim", "Прицел (ПКМ)", "AIM",
-                730, 400, 64, 0.75f, 0, 0, 3, true));
+                730, 400, 64, 0.75f, 0, 0, 3, true, true));
 
         // Jump (Space)
         elements.add(new OscElement("btn_jump", "Прыжок (Space)", "SPACE",
@@ -249,6 +251,20 @@ public class OscManager {
         }
     }
 
+    /**
+     * Releases everything the overlay currently holds down - including a toggled (sticky) button
+     * such as AIM, which stays pressed after the finger leaves the screen. Called whenever the
+     * overlay stops being the input source (Edit Mode, the game losing focus) so that no key or
+     * mouse button is left stuck in the pressed state inside the engine.
+     */
+    public void releaseAllPressed() {
+        for (OscElement el : elements) {
+            if (el.view instanceof OscButton) {
+                ((OscButton) el.view).forceRelease();
+            }
+        }
+    }
+
     public boolean isEditMode() {
         return editMode;
     }
@@ -259,6 +275,11 @@ public class OscManager {
 
     public void setEditMode(boolean active) {
         this.editMode = active;
+        if (active) {
+            // A sticky button (AIM) may still hold the right mouse button down: drop it, otherwise
+            // the engine keeps seeing "aim" pressed for the whole editing session.
+            releaseAllPressed();
+        }
         if (editToolbar != null) {
             editToolbar.setVisibility(active ? View.VISIBLE : View.GONE);
         }

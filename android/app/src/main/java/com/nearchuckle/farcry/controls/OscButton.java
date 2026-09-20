@@ -29,11 +29,19 @@ public class OscButton extends View {
     private final Paint borderPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint editBorderPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint textPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint ledPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final RectF bounds = new RectF();
 
     private Drawable iconDrawable;
     private boolean isPressed = false;
     private boolean isSelected = false;
+
+    /**
+     * Set while a sticky (toggle) button is locked ON: the key / mouse button stays pressed
+     * without a finger on the screen until the button is tapped again (or the overlay gives up
+     * input, see {@link #forceRelease()}).
+     */
+    private boolean latched = false;
 
     /** Finger that pressed this button - needed so the key is released on multi-touch pointer up. */
     private int activePointerId = MotionEvent.INVALID_POINTER_ID;
@@ -67,6 +75,9 @@ public class OscButton extends View {
         textPaint.setColor(Color.WHITE);
         textPaint.setTextAlign(Paint.Align.CENTER);
         textPaint.setFakeBoldText(true);
+
+        ledPaint.setColor(Color.WHITE);
+        ledPaint.setStyle(Paint.Style.FILL);
     }
 
     private void loadIcon() {
@@ -104,7 +115,14 @@ public class OscButton extends View {
                 bgPaint.setColor(Color.argb(160, 25, 30, 36));
             }
         } else {
-            bgPaint.setColor(isPressed ? Color.argb(220, 255, 140, 0) : Color.argb(160, 25, 30, 36));
+            // Three states: idle (dark), finger on it (orange), sticky button locked ON (green).
+            if (latched) {
+                bgPaint.setColor(Color.argb(230, 0, 190, 85));
+            } else if (isPressed) {
+                bgPaint.setColor(Color.argb(220, 255, 140, 0));
+            } else {
+                bgPaint.setColor(Color.argb(160, 25, 30, 36));
+            }
         }
         canvas.drawRoundRect(bounds, radius, radius, bgPaint);
 
@@ -123,7 +141,13 @@ public class OscButton extends View {
                 canvas.drawRoundRect(bounds, radius, radius, borderPaint);
             }
         } else {
-            borderPaint.setColor(isPressed ? Color.rgb(255, 200, 50) : Color.argb(180, 70, 80, 95));
+            if (latched) {
+                borderPaint.setColor(Color.rgb(0, 255, 128));
+                borderPaint.setStrokeWidth(6f);
+            } else {
+                borderPaint.setColor(isPressed ? Color.rgb(255, 200, 50) : Color.argb(180, 70, 80, 95));
+                borderPaint.setStrokeWidth(3f);
+            }
             canvas.drawRoundRect(bounds, radius, radius, borderPaint);
         }
 
@@ -139,9 +163,15 @@ public class OscButton extends View {
             textSize = w * 0.29f;
         }
         textPaint.setTextSize(textSize);
-        textPaint.setColor(isPressed ? Color.BLACK : Color.WHITE);
+        textPaint.setColor((isPressed || latched) ? Color.BLACK : Color.WHITE);
         float textY = h / 2f - (textPaint.descent() + textPaint.ascent()) / 2f;
         canvas.drawText(text, w / 2f, textY, textPaint);
+
+        if (latched) {
+            // Small "LED" at the bottom: the action stays active even though no finger is here.
+            ledPaint.setColor(Color.WHITE);
+            canvas.drawCircle(w / 2f, h - (h * 0.09f), Math.max(3f, w * 0.045f), ledPaint);
+        }
     }
 
     @SuppressLint("ClickableViewAccessibility")
@@ -158,9 +188,25 @@ public class OscButton extends View {
 
         switch (event.getActionMasked()) {
             case MotionEvent.ACTION_DOWN:
+                performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);
+
+                if (element.toggle) {
+                    // Sticky button: this tap flips the state. Locking ON presses the key / mouse
+                    // button and keeps it pressed after the finger leaves the screen; the next tap
+                    // releases it. No pointer is tracked - the finger is free to go anywhere.
+                    activePointerId = MotionEvent.INVALID_POINTER_ID;
+                    latched = !latched;
+                    if (latched) {
+                        sendInputDown();
+                    } else {
+                        sendInputUp();
+                    }
+                    invalidate();
+                    return true;
+                }
+
                 activePointerId = event.getPointerId(0);
                 isPressed = true;
-                performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);
                 sendInputDown();
                 invalidate();
                 return true;
@@ -175,7 +221,10 @@ public class OscButton extends View {
 
             case MotionEvent.ACTION_UP:
             case MotionEvent.ACTION_CANCEL:
-                releaseButton();
+                // A sticky button is released by its next tap, not by lifting the finger.
+                if (!element.toggle) {
+                    releaseButton();
+                }
                 return true;
         }
 
@@ -190,6 +239,27 @@ public class OscButton extends View {
         isPressed = false;
         sendInputUp();
         invalidate();
+    }
+
+    /**
+     * Drops whatever this button holds right now - a normal press or a sticky (latched) one - and
+     * sends the matching release event. Used by {@link OscManager#releaseAllPressed()} when the
+     * overlay stops being the input source, so a locked AIM can never stay pressed in the game.
+     */
+    public void forceRelease() {
+        boolean wasActive = isPressed || latched;
+        isPressed = false;
+        latched = false;
+        activePointerId = MotionEvent.INVALID_POINTER_ID;
+        if (wasActive) {
+            sendInputUp();
+            invalidate();
+        }
+    }
+
+    /** True while a sticky button is locked ON. */
+    public boolean isLatched() {
+        return latched;
     }
 
     private void handleEditTouch(MotionEvent event) {

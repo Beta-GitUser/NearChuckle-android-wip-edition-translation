@@ -281,6 +281,11 @@ public class GameActivity extends SDLActivity {
         if (gamepadMapper != null) {
             gamepadMapper.releaseAll();
         }
+        if (oscManager != null) {
+            // A sticky button (AIM) keeps its key/mouse button down without a finger on it -
+            // it must not stay pressed while the game is in the background.
+            oscManager.releaseAllPressed();
+        }
         super.onPause();
     }
 
@@ -350,9 +355,14 @@ public class GameActivity extends SDLActivity {
         super.onWindowFocusChanged(hasFocus);
         if (hasFocus) {
             hideSystemUI();
-        } else if (gamepadMapper != null) {
+        } else {
             // Nothing may stay "pressed" while the game is in the background.
-            gamepadMapper.releaseAll();
+            if (gamepadMapper != null) {
+                gamepadMapper.releaseAll();
+            }
+            if (oscManager != null) {
+                oscManager.releaseAllPressed();
+            }
         }
     }
 
