@@ -33,6 +33,14 @@ public class OscJoystick extends View {
     private boolean isDown = false;
     private boolean isSelected = false;
 
+    /**
+     * Id of the finger that currently drives the stick. Multi-touch must be tracked by pointer id:
+     * with plain {@code event.getX()} (index 0) the stick follows a foreign finger as soon as a
+     * second touch exists (fire/aim with the other thumb), and the WASD keys stay pressed when the
+     * stick finger is lifted first.
+     */
+    private int activePointerId = MotionEvent.INVALID_POINTER_ID;
+
     // Movement key states
     private boolean keyW = false;
     private boolean keyS = false;
@@ -137,42 +145,106 @@ public class OscJoystick extends View {
             return false;
         }
 
-        int w = getWidth();
-        int h = getHeight();
-        float centerX = w / 2f;
-        float centerY = h / 2f;
-        float maxRadius = Math.min(centerX, centerY) - 10f;
-
         switch (event.getActionMasked()) {
-            case MotionEvent.ACTION_DOWN:
-            case MotionEvent.ACTION_MOVE:
-                isDown = true;
-                float dx = event.getX() - centerX;
-                float dy = event.getY() - centerY;
-                float dist = (float) Math.sqrt(dx * dx + dy * dy);
-
-                if (dist > maxRadius) {
-                    dx = (dx / dist) * maxRadius;
-                    dy = (dy / dist) * maxRadius;
-                }
-
-                knobX = dx;
-                knobY = dy;
-                updateMovementKeys(dx / maxRadius, dy / maxRadius);
-                invalidate();
+            case MotionEvent.ACTION_DOWN: {
+                activePointerId = event.getPointerId(0);
+                requestParentNotToIntercept();
+                applyKnob(event, 0);
                 return true;
+            }
+
+            case MotionEvent.ACTION_POINTER_DOWN: {
+                // Take over the new finger only when the stick is free right now.
+                if (activePointerId == MotionEvent.INVALID_POINTER_ID) {
+                    int index = event.getActionIndex();
+                    activePointerId = event.getPointerId(index);
+                    applyKnob(event, index);
+                }
+                return true;
+            }
+
+            case MotionEvent.ACTION_MOVE: {
+                int index = event.findPointerIndex(activePointerId);
+                if (index >= 0) {
+                    applyKnob(event, index);
+                }
+                return true;
+            }
+
+            case MotionEvent.ACTION_POINTER_UP: {
+                // Some finger was lifted. Release the stick only when it was OUR finger,
+                // otherwise movement would keep going after the thumb is already off the stick.
+                if (event.getPointerId(event.getActionIndex()) == activePointerId) {
+                    releaseStick();
+                }
+                return true;
+            }
 
             case MotionEvent.ACTION_UP:
             case MotionEvent.ACTION_CANCEL:
-                isDown = false;
-                knobX = 0f;
-                knobY = 0f;
-                clearMovementKeys();
-                invalidate();
+                releaseStick();
                 return true;
         }
 
         return super.onTouchEvent(event);
+    }
+
+    /** Moves the knob to the given pointer position and updates the WASD key states. */
+    private void applyKnob(MotionEvent event, int pointerIndex) {
+        float centerX = getWidth() / 2f;
+        float centerY = getHeight() / 2f;
+        float maxRadius = Math.min(centerX, centerY) - 10f;
+        if (maxRadius <= 0f) {
+            return;
+        }
+
+        isDown = true;
+        float dx = event.getX(pointerIndex) - centerX;
+        float dy = event.getY(pointerIndex) - centerY;
+        float dist = (float) Math.sqrt(dx * dx + dy * dy);
+
+        if (dist > maxRadius) {
+            dx = (dx / dist) * maxRadius;
+            dy = (dy / dist) * maxRadius;
+        }
+
+        knobX = dx;
+        knobY = dy;
+        updateMovementKeys(dx / maxRadius, dy / maxRadius);
+        invalidate();
+    }
+
+    /** Centers the knob and releases every movement key. */
+    private void releaseStick() {
+        activePointerId = MotionEvent.INVALID_POINTER_ID;
+        isDown = false;
+        knobX = 0f;
+        knobY = 0f;
+        clearMovementKeys();
+        invalidate();
+    }
+
+    private void requestParentNotToIntercept() {
+        android.view.ViewParent parent = getParent();
+        if (parent != null) {
+            parent.requestDisallowInterceptTouchEvent(true);
+        }
+    }
+
+    @Override
+    protected void onDetachedFromWindow() {
+        // The overlay only goes away when the activity is destroyed (GameActivity kills the
+        // process right after), so just drop the local state here. No native key events are
+        // sent on purpose - SDL has already been shut down at this point.
+        activePointerId = MotionEvent.INVALID_POINTER_ID;
+        isDown = false;
+        knobX = 0f;
+        knobY = 0f;
+        keyW = false;
+        keyS = false;
+        keyA = false;
+        keyD = false;
+        super.onDetachedFromWindow();
     }
 
     private void handleEditTouch(MotionEvent event) {

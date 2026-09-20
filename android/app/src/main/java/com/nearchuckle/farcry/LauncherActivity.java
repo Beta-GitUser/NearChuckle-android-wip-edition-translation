@@ -334,12 +334,9 @@ public class LauncherActivity extends Activity {
             @Override public void onStopTrackingTouch(SeekBar seekBar) {}
         });
 
-        // Configure Controls button (opens fullscreen touch editor)
-        findViewById(R.id.btn_configure_controls).setOnClickListener(v -> {
-            savePreferences();
-            Intent intent = new Intent(this, ConfigureControlsActivity.class);
-            startActivity(intent);
-        });
+        // NOTE: the standalone "Configure On-Screen Controls" button was removed from the
+        // launcher UI on purpose. Controls are still adjustable in-game via the EDIT button
+        // (OscManager edit mode); ConfigureControlsActivity stays available for debugging.
 
         // View Logs & Crash Reports button
         findViewById(R.id.btn_view_logs).setOnClickListener(v -> {
