@@ -22,6 +22,13 @@ public class OscElement implements Serializable {
     public final int iconRes;
     public final int sdlKeyCode;
     public final int mouseButton; // 0: not mouse, 1: left, 2: middle, 3: right
+    /**
+     * Sticky ("toggle") behaviour. When true, the first tap presses the key / mouse button and
+     * keeps it pressed after the finger leaves the screen; the second tap releases it. This is
+     * used for aiming: keeping a finger on AIM while looking around with the other hand is
+     * awkward, so the player just taps AIM once and shoots at leisure.
+     */
+    public final boolean toggle;
 
     public int xPercent;
     public int yPercent;
@@ -34,6 +41,13 @@ public class OscElement implements Serializable {
 
     public OscElement(String id, String label, String buttonText, int defaultX, int defaultY, int defaultSizeDp,
                       float defaultOpacity, int iconRes, int sdlKeyCode, int mouseButton, boolean defaultVisible) {
+        this(id, label, buttonText, defaultX, defaultY, defaultSizeDp, defaultOpacity, iconRes, sdlKeyCode,
+                mouseButton, defaultVisible, false);
+    }
+
+    public OscElement(String id, String label, String buttonText, int defaultX, int defaultY, int defaultSizeDp,
+                      float defaultOpacity, int iconRes, int sdlKeyCode, int mouseButton, boolean defaultVisible,
+                      boolean toggle) {
         this.id = id;
         this.label = label;
         this.buttonText = (buttonText != null) ? buttonText : label;
@@ -45,6 +59,7 @@ public class OscElement implements Serializable {
         this.sdlKeyCode = sdlKeyCode;
         this.mouseButton = mouseButton;
         this.defaultVisible = defaultVisible;
+        this.toggle = toggle;
 
         this.xPercent = defaultX;
         this.yPercent = defaultY;
