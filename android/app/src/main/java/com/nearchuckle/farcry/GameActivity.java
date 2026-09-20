@@ -10,6 +10,8 @@ import android.system.ErrnoException;
 import android.system.Os;
 import android.util.DisplayMetrics;
 import android.util.Log;
+import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
@@ -36,6 +38,8 @@ import java.util.List;
 public class GameActivity extends SDLActivity {
     private static final String TAG = "NearChuckle-GameActivity";
     private OscManager oscManager;
+    /** Hardware gamepad -> WASD / mouse look / mouse buttons (see GamepadMapper). */
+    private GamepadMapper gamepadMapper;
 
     @Override
     protected String[] getLibraries() {
@@ -244,6 +248,40 @@ public class GameActivity extends SDLActivity {
 
         // Attach On-Screen Controls (OSC) to SDL layout
         setupControlsOverlay();
+
+        // Hardware gamepad support: keyboard and mouse already reach the engine through SDL
+        // (SDLSurface.onKey / relative-mouse pointer capture), but CryEngine 1 has no gamepad
+        // backend on Android, so the pad is translated into keys / mouse here.
+        gamepadMapper = new GamepadMapper(this);
+    }
+
+    // Hardware keyboard and mouse events keep flowing through SDL as before; only gamepad
+    // events are consumed by the mapper.
+    @Override
+    public boolean dispatchKeyEvent(KeyEvent event) {
+        if (gamepadMapper != null && gamepadMapper.handleKeyEvent(event)) {
+            return true;
+        }
+        return super.dispatchKeyEvent(event);
+    }
+
+    // Joystick axes are consumed by SDLSurface's generic-motion listener at view level, so we
+    // intercept one step earlier - at the activity dispatch level - and only for joystick-class
+    // devices. Everything else (mouse hover, etc.) flows to SDL untouched.
+    @Override
+    public boolean dispatchGenericMotionEvent(MotionEvent event) {
+        if (gamepadMapper != null && gamepadMapper.handleMotionEvent(event)) {
+            return true;
+        }
+        return super.dispatchGenericMotionEvent(event);
+    }
+
+    @Override
+    protected void onPause() {
+        if (gamepadMapper != null) {
+            gamepadMapper.releaseAll();
+        }
+        super.onPause();
     }
 
     private void setupControlsOverlay() {
@@ -312,6 +350,9 @@ public class GameActivity extends SDLActivity {
         super.onWindowFocusChanged(hasFocus);
         if (hasFocus) {
             hideSystemUI();
+        } else if (gamepadMapper != null) {
+            // Nothing may stay "pressed" while the game is in the background.
+            gamepadMapper.releaseAll();
         }
     }
 
